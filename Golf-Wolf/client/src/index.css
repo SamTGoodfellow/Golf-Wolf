@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+
+  /* Golf Green Palette */
+  --background: 140 30% 98%;
+  --foreground: 140 50% 10%;
+  
+  --primary: 142 76% 36%;  /* Deep Green */
+  --primary-foreground: 140 30% 98%;
+  
+  --secondary: 140 20% 90%;
+  --secondary-foreground: 142 76% 26%;
+  
+  --muted: 140 20% 94%;
+  --muted-foreground: 140 10% 40%;
+  
+  --accent: 84 81% 44%;   /* Lime/Grass Green */
+  --accent-foreground: 140 30% 98%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 140 20% 85%;
+  --input: 140 20% 85%;
+  --ring: 142 76% 36%;
+  
+  --radius: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+    background-image: 
+      radial-gradient(circle at 100% 0%, hsla(142, 76%, 36%, 0.05) 0%, transparent 25%),
+      radial-gradient(circle at 0% 100%, hsla(84, 81%, 44%, 0.05) 0%, transparent 25%);
+    background-attachment: fixed;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight text-foreground;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl shadow-green-900/5;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 active:shadow-md transition-all duration-200 font-semibold rounded-xl px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-foreground border border-border shadow-sm hover:bg-secondary/50 hover:border-primary/20 transition-all duration-200 font-semibold rounded-xl px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+}
+
+/* Custom scrollbar for webkit */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30 transition-colors;
+}

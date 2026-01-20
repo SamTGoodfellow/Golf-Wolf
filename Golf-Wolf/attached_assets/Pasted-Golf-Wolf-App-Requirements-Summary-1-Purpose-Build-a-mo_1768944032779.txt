@@ -1,0 +1,214 @@
+Golf Wolf – App Requirements Summary
+1. Purpose
+
+Build a mobile-first, responsive web app that helps a group of golfers easily manage and score a round of Wolf golf on the course.
+
+The app should:
+
+Be fast to use on a phone
+
+Require no login
+
+Work in a browser
+
+Feel “app-like” (clean UI, large buttons)
+
+2. Target Users
+
+Casual to regular golfers
+
+Playing informal rounds of Wolf
+
+Typically 3–5 players
+
+Using phones outdoors (gloves, sunlight, poor signal)
+
+3. Core User Flow
+
+Open the app (no sign-up)
+
+Add players and handicaps
+
+Start the game
+
+For each hole:
+
+Select the Wolf
+
+Record the hole winner(s)
+
+Automatically update scores
+
+View running totals
+
+Complete 18 holes
+
+View final leaderboard
+
+4. Functional Requirements
+4.1 Game Setup
+
+User can add players:
+
+Name (required)
+
+Handicap (integer)
+
+Minimum of 3 players required to start
+
+Players can be edited or removed before starting
+
+No persistence required (session-based is fine for MVP)
+
+4.2 Hole Management
+
+Game tracks holes from 1 to 18
+
+Current hole number is always clearly visible
+
+User can move to the next hole
+
+Wolf resets when moving to the next hole
+
+4.3 Wolf Selection
+
+For each hole, user can select one player as the Wolf
+
+Wolf should be visually highlighted (icon or colour)
+
+Wolf selection should be quick (single tap)
+
+Only one Wolf allowed per hole
+
+4.4 Scoring (MVP Rules)
+
+For the MVP, keep scoring intentionally simple:
+
+User can mark one or more players as “Won Hole”
+
+Each win awards +1 point to that player
+
+Scores are tracked per hole and summed into a total
+
+Advanced Wolf rules (solo wolf, doubles, presses, betting) are explicitly out of scope for v1.
+
+4.5 Score Display
+
+Each player shows:
+
+Name
+
+Handicap
+
+Current total score
+
+Scores update immediately after input
+
+Wolf is clearly marked in the player list
+
+4.6 Leaderboard
+
+App shows a leaderboard:
+
+Players sorted by total score (highest first)
+
+Leaderboard is viewable:
+
+During the round
+
+Automatically at the end of hole 18
+
+5. Non-Functional Requirements
+5.1 Platform
+
+Mobile-responsive web app
+
+Optimised for phone screens
+
+Should work on:
+
+iOS Safari
+
+Android Chrome
+
+5.2 Usability
+
+Large buttons and touch targets
+
+Minimal typing once game starts
+
+No popups that slow play
+
+Clear visual state (Wolf, hole, score)
+
+5.3 Performance
+
+Instant interactions
+
+No backend required
+
+State can be in memory or browser storage
+
+5.4 Accessibility
+
+High contrast text
+
+Clear labels
+
+Icons supported with text
+
+6. Visual / UX Guidelines
+
+Clean, uncluttered layout
+
+Green primary colour (golf theme)
+
+Wolf indicator (🐺 icon recommended)
+
+One-handed use
+
+No complex navigation (single main screen preferred)
+
+7. Explicitly Out of Scope (v1)
+
+User accounts / login
+
+Betting / money tracking
+
+GPS or course data
+
+Handicap calculations
+
+App Store deployment
+
+Cloud sync or multiplayer online
+
+8. Success Criteria (MVP)
+
+The app is successful if:
+
+A group of golfers can complete a full round
+
+Scoring takes <10 seconds per hole
+
+No one needs instructions after hole 2
+
+The app works reliably on the course
+
+9. Future Enhancements (Not Now)
+
+Full Wolf rules engine
+
+Persistent game history
+
+Offline-first PWA
+
+Native mobile app
+
+Sharing results
+
+Payments / betting modes
+
+10. One-Sentence Summary (for Replit)
+
+“Build a mobile-first web app that lets golfers add players, select a Wolf per hole, record hole winners, and automatically track scores across an 18-hole round of Wolf golf.”
