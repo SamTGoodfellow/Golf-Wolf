@@ -130,7 +130,7 @@ export default function Setup() {
                     {index + 1}
                   </div>
                   <span className="font-semibold flex-1 truncate">{player.name}</span>
-                  {index === 0 && (
+                  {index === orderedPlayers.length - 1 && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium flex-shrink-0">
                       🐺 Wolf hole 1
                     </span>
@@ -155,7 +155,7 @@ export default function Setup() {
               ))}
             </div>
             <p className="text-xs text-muted-foreground text-center px-1">
-              Player 1 is wolf on hole 1 and tees off last. Rotates each hole.
+              The last player is wolf on hole 1 — they always tee off last. Rotates each hole.
             </p>
           </div>
         )}

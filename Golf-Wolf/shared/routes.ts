@@ -149,9 +149,13 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 // WOLF ROTATION HELPERS
 // ============================================
 
-/** Returns the wolf's player ID for a given hole */
+/** Returns the wolf's player ID for a given hole.
+ *  Hole 1 wolf = last player (highest position). Rotates backwards from there.
+ *  e.g. 4 players: hole 1 → pos 4, hole 2 → pos 1, hole 3 → pos 2, hole 4 → pos 3
+ */
 export function getWolfId(playerOrder: number[], holeNumber: number): number {
-  return playerOrder[(holeNumber - 1) % playerOrder.length];
+  const len = playerOrder.length;
+  return playerOrder[(holeNumber + len - 2) % len];
 }
 
 /** Returns tee-off order for a hole: all non-wolf players in sequence, wolf last */
