@@ -8,11 +8,11 @@ import { Logo } from "@/components/logo";
 
 const scoringRows = [
   { scenario: "Wolf + Partner Win", wolf: "+2", partner: "+2", hunters: "0", emoji: "🏆" },
-  { scenario: "Wolf + Partner Lose", wolf: "0", partner: "0", hunters: "+3 ea", emoji: "💀" },
+  { scenario: "Wolf + Partner Lose", wolf: "0", partner: "0", hunters: "+3", emoji: "💀" },
   { scenario: "Lone Wolf Wins", wolf: "+4", partner: "—", hunters: "0", emoji: "👑" },
-  { scenario: "Lone Wolf Loses", wolf: "0", partner: "—", hunters: "+1 ea", emoji: "😬" },
+  { scenario: "Lone Wolf Loses", wolf: "0", partner: "—", hunters: "+1", emoji: "😬" },
   { scenario: "Blind Wolf Wins", wolf: "+6", partner: "—", hunters: "0", emoji: "🌑👑" },
-  { scenario: "Blind Wolf Loses", wolf: "0", partner: "—", hunters: "+3 ea", emoji: "💸" },
+  { scenario: "Blind Wolf Loses", wolf: "0", partner: "—", hunters: "+3", emoji: "💸" },
   { scenario: "Draw", wolf: "0", partner: "0", hunters: "0", emoji: "🤝" },
 ];
 
@@ -90,7 +90,10 @@ export default function Home() {
             <div className="bg-white/70 backdrop-blur rounded-2xl p-5 border border-white/40 shadow-sm space-y-3">
               <h2 className="font-display font-bold text-xl">Right lads, listen up 🐺</h2>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Golf Wolf is a betting game where one player per hole is crowned <strong>The Wolf</strong>. The Wolf tees off last, watches everyone else swing, then decides whether to take a partner or go it alone against the pack.
+                Golf Wolf is a betting game where one player per hole is <strong>The Wolf</strong>. Whoever racks up the most points by the end gets crowned the winner — try not to bottle it on the back nine.
+              </p>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                The Wolf tees off last and watches each player hit. After every shot, they decide: <strong>pick that player as their partner</strong>, or pass and wait for the next one. Miss your window before the next player swings? That's gone — you can't go back. Once the Wolf steps up to tee, they either take whoever they last picked or go it alone.
               </p>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 Think you've got the nerve to call <strong>Blind Wolf</strong> before anyone tees off? Be our guest mate — just don't cry about it at the 19th hole.
@@ -124,7 +127,7 @@ export default function Home() {
                   <div className="col-span-1">Outcome</div>
                   <div className="text-center">Wolf</div>
                   <div className="text-center">Partner</div>
-                  <div className="text-center">Hunters</div>
+                  <div className="text-center">Per Hunter</div>
                 </div>
                 {scoringRows.map((row, i) => (
                   <div key={row.scenario} className={`grid grid-cols-4 px-3 py-2.5 text-sm items-center ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
