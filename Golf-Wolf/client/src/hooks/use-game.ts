@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type CreatePlayerInput, type SubmitHoleInput } from "@shared/routes";
+import { api, buildUrl, type CreatePlayerInput, type SubmitHoleInput, type EditHoleInput, type SetOrderInput } from "@shared/routes";
 
 // GET /api/games/:id
 export function useGame(id: number | null) {
@@ -24,10 +24,30 @@ export function useCreateGame() {
       const res = await fetch(api.games.create.path, {
         method: api.games.create.method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}), // Empty object as per schema
+        body: JSON.stringify({}),
       });
       if (!res.ok) throw new Error("Failed to create game");
       return api.games.create.responses[201].parse(await res.json());
+    },
+  });
+}
+
+// POST /api/games/:id/order
+export function useSetPlayerOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ gameId, data }: { gameId: number; data: SetOrderInput }) => {
+      const url = buildUrl(api.games.setOrder.path, { id: gameId });
+      const res = await fetch(url, {
+        method: api.games.setOrder.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to set player order");
+      return api.games.setOrder.responses[200].parse(await res.json());
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [api.games.get.path, data.id] });
     },
   });
 }
@@ -39,7 +59,10 @@ export function useStartGame() {
     mutationFn: async (id: number) => {
       const url = buildUrl(api.games.start.path, { id });
       const res = await fetch(url, { method: api.games.start.method });
-      if (!res.ok) throw new Error("Failed to start game");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to start game");
+      }
       return api.games.start.responses[200].parse(await res.json());
     },
     onSuccess: (data) => {
@@ -70,7 +93,6 @@ export function useCreatePlayer() {
   return useMutation({
     mutationFn: async ({ gameId, data }: { gameId: number; data: CreatePlayerInput }) => {
       const url = buildUrl(api.players.create.path, { gameId });
-      // Validate input manually before sending if needed, but api handles it
       const res = await fetch(url, {
         method: api.players.create.method,
         headers: { "Content-Type": "application/json" },
@@ -119,6 +141,32 @@ export function useSubmitHole() {
         throw new Error("Failed to submit hole");
       }
       return api.holes.submit.responses[200].parse(await res.json());
+    },
+    onSuccess: (_, { gameId }) => {
+      queryClient.invalidateQueries({ queryKey: [api.games.get.path, gameId] });
+    },
+  });
+}
+
+// PUT /api/games/:gameId/holes/:holeNumber
+export function useEditHole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ gameId, holeNumber, data }: { gameId: number; holeNumber: number; data: EditHoleInput }) => {
+      const url = buildUrl(api.holes.edit.path, { gameId, holeNumber });
+      const res = await fetch(url, {
+        method: api.holes.edit.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        if (res.status === 400) {
+          const error = await res.json();
+          throw new Error(error.message || "Invalid hole edit");
+        }
+        throw new Error("Failed to edit hole");
+      }
+      return api.holes.edit.responses[200].parse(await res.json());
     },
     onSuccess: (_, { gameId }) => {
       queryClient.invalidateQueries({ queryKey: [api.games.get.path, gameId] });

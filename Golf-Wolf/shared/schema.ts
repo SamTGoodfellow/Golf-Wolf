@@ -7,6 +7,7 @@ export const games = pgTable("games", {
   id: serial("id").primaryKey(),
   status: text("status").notNull().default("setup"), // 'setup', 'playing', 'complete'
   currentHole: integer("current_hole").notNull().default(1),
+  playerOrder: integer("player_order").array(), // Ordered player IDs; determines wolf rotation
 });
 
 export const players = pgTable("players", {
@@ -14,7 +15,7 @@ export const players = pgTable("players", {
   gameId: integer("game_id").notNull(),
   name: text("name").notNull(),
   handicap: integer("handicap").notNull().default(0),
-  score: integer("score").notNull().default(0), // Cached total score for display
+  score: integer("score").notNull().default(0), // Cached total score
 });
 
 export const holeResults = pgTable("hole_results", {
@@ -22,9 +23,11 @@ export const holeResults = pgTable("hole_results", {
   gameId: integer("game_id").notNull(),
   holeNumber: integer("hole_number").notNull(),
   wolfId: integer("wolf_id").notNull(),
-  partnerId: integer("partner_id"), // NULL if lone wolf
+  partnerId: integer("partner_id"),         // NULL if lone wolf / blind wolf
   isLoneWolf: boolean("is_lone_wolf").notNull().default(false),
-  winnerIds: integer("winner_ids").array(), // IDs of players who won the hole
+  isBlindWolf: boolean("is_blind_wolf").notNull().default(false), // Declared before any tee shots
+  isDraw: boolean("is_draw").notNull().default(false),            // No points awarded
+  winnerIds: integer("winner_ids").array(),  // Empty on draw
 });
 
 // === SCHEMAS ===
@@ -42,11 +45,6 @@ export type InsertHoleResult = z.infer<typeof insertHoleResultSchema>;
 
 // Request types
 export type CreatePlayerRequest = InsertPlayer;
-export type SubmitHoleRequest = {
-  holeNumber: number;
-  wolfId: number;
-  winnerIds: number[];
-};
 
 // Response types
 export type GameStateResponse = {
