@@ -96,6 +96,9 @@ export default function Home() {
                 The Wolf tees off last and watches each player hit. After every shot, they decide: <strong>pick that player as their partner</strong>, or pass and wait for the next one. Miss your window before the next player swings? That's gone — you can't go back. Once the Wolf steps up to tee, they either take whoever they last picked or go it alone.
               </p>
               <p className="text-muted-foreground text-sm leading-relaxed">
+                Everyone plays their own ball throughout. The hole is won by whichever side posts the <strong>lowest net score</strong> — handicaps apply, so make sure you know your shots. The app tracks the Wolf points, not your arithmetic. You'll have to work the handicap strokes out yourselves lads, we're not miracle workers.
+              </p>
+              <p className="text-muted-foreground text-sm leading-relaxed">
                 Think you've got the nerve to call <strong>Blind Wolf</strong> before anyone tees off? Be our guest mate — just don't cry about it at the 19th hole.
               </p>
             </div>
