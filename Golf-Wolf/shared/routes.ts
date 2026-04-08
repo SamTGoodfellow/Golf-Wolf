@@ -47,6 +47,7 @@ export const api = {
       path: '/api/games/:id/start',
       responses: {
         200: z.custom<typeof games.$inferSelect>(),
+        400: errorSchemas.validation,
         404: errorSchemas.notFound,
       },
     },
@@ -55,6 +56,18 @@ export const api = {
       path: '/api/games/:id/restart',
       responses: {
         200: z.custom<typeof games.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    setOrder: {
+      method: 'POST' as const,
+      path: '/api/games/:id/order',
+      input: z.object({
+        playerOrder: z.array(z.number()).min(3),
+      }),
+      responses: {
+        200: z.custom<typeof games.$inferSelect>(),
+        400: errorSchemas.validation,
         404: errorSchemas.notFound,
       },
     },
@@ -87,6 +100,25 @@ export const api = {
         wolfId: z.number(),
         partnerId: z.number().nullable(),
         isLoneWolf: z.boolean(),
+        isBlindWolf: z.boolean(),
+        isDraw: z.boolean(),
+        winnerIds: z.array(z.number()),
+      }),
+      responses: {
+        200: z.custom<typeof holeResults.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    edit: {
+      method: 'PUT' as const,
+      path: '/api/games/:gameId/holes/:holeNumber',
+      input: z.object({
+        wolfId: z.number(),
+        partnerId: z.number().nullable(),
+        isLoneWolf: z.boolean(),
+        isBlindWolf: z.boolean(),
+        isDraw: z.boolean(),
         winnerIds: z.array(z.number()),
       }),
       responses: {
@@ -114,8 +146,25 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 }
 
 // ============================================
+// WOLF ROTATION HELPERS
+// ============================================
+
+/** Returns the wolf's player ID for a given hole */
+export function getWolfId(playerOrder: number[], holeNumber: number): number {
+  return playerOrder[(holeNumber - 1) % playerOrder.length];
+}
+
+/** Returns tee-off order for a hole: all non-wolf players in sequence, wolf last */
+export function getTeeOffOrder(playerOrder: number[], holeNumber: number): number[] {
+  const wolfId = getWolfId(playerOrder, holeNumber);
+  return [...playerOrder.filter(id => id !== wolfId), wolfId];
+}
+
+// ============================================
 // TYPES
 // ============================================
 export type GameResponse = z.infer<typeof api.games.get.responses[200]>;
 export type CreatePlayerInput = z.infer<typeof api.players.create.input>;
 export type SubmitHoleInput = z.infer<typeof api.holes.submit.input>;
+export type EditHoleInput = z.infer<typeof api.holes.edit.input>;
+export type SetOrderInput = z.infer<typeof api.games.setOrder.input>;
