@@ -57,7 +57,7 @@ export function AddPlayerDialog({ gameId }: AddPlayerDialogProps) {
             <Label htmlFor="name">Player Name</Label>
             <Input
               id="name"
-              placeholder="e.g. Tiger Woods"
+              placeholder="e.g. Rory McIlroy"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-12 text-lg"
