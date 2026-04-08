@@ -345,13 +345,92 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
               )}
             </div>
 
-            {!isDraw && (
+            {!isDraw && decision === "partner" && partnerId ? (
+              // Partner mode: wolf+partner as one grouped frame, hunters individually
+              <div className="space-y-2">
+                {/* Wolf + Partner team block */}
+                {(() => {
+                  const teamSelected = winnerIds.includes(wolfId) && winnerIds.includes(partnerId);
+                  const partnerPlayer = players.find(p => p.id === partnerId);
+                  return (
+                    <button
+                      onClick={() => handleToggleWinner(wolfId)}
+                      className={`w-full rounded-xl border-2 transition-all duration-200 overflow-hidden
+                        ${teamSelected
+                          ? 'border-accent bg-accent/10 shadow-md'
+                          : 'border-border bg-white hover:bg-muted/20'}`}
+                    >
+                      <div className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-center
+                        ${teamSelected ? 'bg-accent text-white' : 'bg-muted/40 text-muted-foreground'}`}>
+                        🐺 Wolf &amp; Partner
+                      </div>
+                      <div className="grid grid-cols-2 divide-x divide-border/50 p-3 gap-0">
+                        {[
+                          { player: wolf, role: "The Wolf 🐺" },
+                          { player: partnerPlayer, role: "Partner 🤝" },
+                        ].map(({ player, role }) => (
+                          <div key={player?.id} className="flex items-center gap-2.5 px-2">
+                            <div className={`flex h-9 w-9 items-center justify-center rounded-full flex-shrink-0
+                              ${teamSelected ? 'bg-accent text-white' : 'bg-muted text-muted-foreground'}`}>
+                              <span className="text-base">{role.includes('Wolf') ? '🐺' : '🤝'}</span>
+                            </div>
+                            <div className="text-left min-w-0">
+                              <div className={`font-bold truncate ${teamSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                {player?.name}
+                              </div>
+                              <div className="text-xs opacity-60">{role}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="px-3 pb-2.5 flex justify-end">
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center
+                          ${teamSelected ? 'border-accent bg-accent text-white' : 'border-muted-foreground/30'}`}>
+                          {teamSelected && <Check className="w-4 h-4" />}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
+
+                {/* Hunters individually */}
+                {players
+                  .filter(p => p.id !== wolfId && p.id !== partnerId)
+                  .map(player => {
+                    const isSelected = winnerIds.includes(player.id);
+                    return (
+                      <button
+                        key={player.id}
+                        onClick={() => handleToggleWinner(player.id)}
+                        className={`flex items-center justify-between w-full p-4 rounded-xl transition-all duration-200 border
+                          ${isSelected
+                            ? 'bg-accent/10 border-accent text-foreground shadow-md'
+                            : 'bg-white border-border text-muted-foreground hover:bg-muted/20'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-full
+                            ${isSelected ? 'bg-accent text-white' : 'bg-muted text-muted-foreground'}`}>
+                            <span className="text-lg">🏌️</span>
+                          </div>
+                          <div className="text-left">
+                            <div className={`font-bold text-lg ${isSelected ? 'text-foreground' : ''}`}>{player.name}</div>
+                            <div className="text-xs font-medium opacity-60">Hunter</div>
+                          </div>
+                        </div>
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0
+                          ${isSelected ? 'border-accent bg-accent text-white' : 'border-muted-foreground/30'}`}>
+                          {isSelected && <Check className="w-4 h-4" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
+            ) : !isDraw ? (
+              // Lone wolf / blind wolf: individual cards for all players
               <div className="grid grid-cols-1 gap-2">
                 {players.map(player => {
                   const isSelected = winnerIds.includes(player.id);
                   const role = getPlayerRole(player.id);
-                  const isWolfOrPartner = player.id === wolfId || (decision === "partner" && player.id === partnerId);
-
                   return (
                     <button
                       key={player.id}
@@ -364,20 +443,13 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
                       <div className="flex items-center gap-3">
                         <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors
                           ${isSelected ? 'bg-accent text-white' : 'bg-muted text-muted-foreground'}`}>
-                          {player.id === wolfId
-                            ? <span className="text-lg">🐺</span>
-                            : decision === "partner" && player.id === partnerId
-                              ? <span className="text-lg">🤝</span>
-                              : <span className="text-lg">🏌️</span>}
+                          {player.id === wolfId ? <span className="text-lg">🐺</span> : <span className="text-lg">🏌️</span>}
                         </div>
                         <div className="text-left">
                           <div className={`font-bold text-lg ${isSelected ? 'text-foreground' : ''}`}>{player.name}</div>
                           <div className="text-xs font-medium opacity-60">{role}</div>
                         </div>
                       </div>
-                      {isWolfOrPartner && decision === "partner" && (
-                        <span className="text-xs text-muted-foreground italic mr-2">wins/loses together</span>
-                      )}
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0
                         ${isSelected ? 'border-accent bg-accent text-white' : 'border-muted-foreground/30'}`}>
                         {isSelected && <Check className="w-4 h-4" />}
@@ -386,7 +458,7 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
                   );
                 })}
               </div>
-            )}
+            ) : null}
 
             {isDraw && (
               <div className="bg-muted/40 rounded-xl p-4 text-center text-muted-foreground font-medium">
