@@ -57,32 +57,16 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
 
   const wolf = players.find(p => p.id === wolfId);
 
-  const toggleWinner = (id: number) => {
-    if (isDraw) return;
-    setWinnerIds(prev => prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]);
-  };
+  // Wolf side = wolf alone (lone/blind) or wolf + partner
+  const wolfSideIds = decision === "partner" && partnerId ? [wolfId, partnerId] : [wolfId];
+  // Hunters = everyone else — always win/lose as a team
+  const hunterIds = players.map(p => p.id).filter(id => !wolfSideIds.includes(id));
 
-  // Wolf+partner must win/lose together
-  const handleToggleWinner = (id: number) => {
-    if (decision === "partner" && partnerId) {
-      const isWolf = id === wolfId;
-      const isPartner = id === partnerId;
-      if (isWolf || isPartner) {
-        // Toggle both together
-        const bothSelected = winnerIds.includes(wolfId) && winnerIds.includes(partnerId);
-        if (bothSelected) {
-          setWinnerIds(prev => prev.filter(pid => pid !== wolfId && pid !== partnerId));
-        } else {
-          setWinnerIds(prev => {
-            const without = prev.filter(pid => pid !== wolfId && pid !== partnerId);
-            return [...without, wolfId, partnerId];
-          });
-        }
-        return;
-      }
-    }
-    toggleWinner(id);
-  };
+  const wolfSideWon = winnerIds.length > 0 && wolfSideIds.every(id => winnerIds.includes(id)) && winnerIds.length === wolfSideIds.length;
+  const huntersWon = winnerIds.length > 0 && hunterIds.every(id => winnerIds.includes(id)) && winnerIds.length === hunterIds.length;
+
+  const selectWolfSideWins = () => { setWinnerIds(wolfSideIds); setIsDraw(false); };
+  const selectHuntersWin = () => { setWinnerIds(hunterIds); setIsDraw(false); };
 
   const handleDecision = (d: WolfDecision) => {
     setDecision(d);
@@ -345,120 +329,77 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
               )}
             </div>
 
-            {!isDraw && decision === "partner" && partnerId ? (
-              // Partner mode: wolf+partner as one grouped frame, hunters individually
-              <div className="space-y-2">
-                {/* Wolf + Partner team block */}
-                {(() => {
-                  const teamSelected = winnerIds.includes(wolfId) && winnerIds.includes(partnerId);
-                  const partnerPlayer = players.find(p => p.id === partnerId);
-                  return (
-                    <button
-                      onClick={() => handleToggleWinner(wolfId)}
-                      className={`w-full rounded-xl border-2 transition-all duration-200 overflow-hidden
-                        ${teamSelected
-                          ? 'border-accent bg-accent/10 shadow-md'
-                          : 'border-border bg-white hover:bg-muted/20'}`}
-                    >
-                      <div className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-center
-                        ${teamSelected ? 'bg-accent text-white' : 'bg-muted/40 text-muted-foreground'}`}>
-                        🐺 Wolf &amp; Partner
-                      </div>
-                      <div className="grid grid-cols-2 divide-x divide-border/50 p-3 gap-0">
-                        {[
-                          { player: wolf, role: "The Wolf 🐺" },
-                          { player: partnerPlayer, role: "Partner 🤝" },
-                        ].map(({ player, role }) => (
-                          <div key={player?.id} className="flex items-center gap-2.5 px-2">
-                            <div className={`flex h-9 w-9 items-center justify-center rounded-full flex-shrink-0
-                              ${teamSelected ? 'bg-accent text-white' : 'bg-muted text-muted-foreground'}`}>
-                              <span className="text-base">{role.includes('Wolf') ? '🐺' : '🤝'}</span>
-                            </div>
-                            <div className="text-left min-w-0">
-                              <div className={`font-bold truncate ${teamSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                {player?.name}
-                              </div>
-                              <div className="text-xs opacity-60">{role}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="px-3 pb-2.5 flex justify-end">
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center
-                          ${teamSelected ? 'border-accent bg-accent text-white' : 'border-muted-foreground/30'}`}>
-                          {teamSelected && <Check className="w-4 h-4" />}
+            {!isDraw && (
+              <div className="grid grid-cols-2 gap-3">
+                {/* Wolf side */}
+                <button
+                  onClick={selectWolfSideWins}
+                  className={`rounded-2xl border-2 transition-all duration-200 overflow-hidden text-left
+                    ${wolfSideWon
+                      ? 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
+                      : 'border-border bg-white hover:border-primary/40'}`}
+                >
+                  <div className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-center
+                    ${wolfSideWon ? 'bg-primary text-white' : 'bg-muted/40 text-muted-foreground'}`}>
+                    Wolf Side
+                  </div>
+                  <div className="p-3 space-y-2">
+                    {wolfSideIds.map(id => {
+                      const p = players.find(pl => pl.id === id);
+                      return (
+                        <div key={id} className="flex items-center gap-2">
+                          <span className="text-base">{id === wolfId ? '🐺' : '🤝'}</span>
+                          <span className={`font-semibold text-sm truncate ${wolfSideWon ? 'text-foreground' : 'text-muted-foreground'}`}>
+                            {p?.name}
+                          </span>
                         </div>
+                      );
+                    })}
+                  </div>
+                  {wolfSideWon && (
+                    <div className="px-3 pb-2 flex justify-end">
+                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
                       </div>
-                    </button>
-                  );
-                })()}
+                    </div>
+                  )}
+                </button>
 
-                {/* Hunters individually */}
-                {players
-                  .filter(p => p.id !== wolfId && p.id !== partnerId)
-                  .map(player => {
-                    const isSelected = winnerIds.includes(player.id);
-                    return (
-                      <button
-                        key={player.id}
-                        onClick={() => handleToggleWinner(player.id)}
-                        className={`flex items-center justify-between w-full p-4 rounded-xl transition-all duration-200 border
-                          ${isSelected
-                            ? 'bg-accent/10 border-accent text-foreground shadow-md'
-                            : 'bg-white border-border text-muted-foreground hover:bg-muted/20'}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-full
-                            ${isSelected ? 'bg-accent text-white' : 'bg-muted text-muted-foreground'}`}>
-                            <span className="text-lg">🏌️</span>
-                          </div>
-                          <div className="text-left">
-                            <div className={`font-bold text-lg ${isSelected ? 'text-foreground' : ''}`}>{player.name}</div>
-                            <div className="text-xs font-medium opacity-60">Hunter</div>
-                          </div>
+                {/* Hunters — always a team */}
+                <button
+                  onClick={selectHuntersWin}
+                  className={`rounded-2xl border-2 transition-all duration-200 overflow-hidden text-left
+                    ${huntersWon
+                      ? 'border-orange-500 bg-orange-50 shadow-lg shadow-orange-100'
+                      : 'border-border bg-white hover:border-orange-300'}`}
+                >
+                  <div className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-center
+                    ${huntersWon ? 'bg-orange-500 text-white' : 'bg-muted/40 text-muted-foreground'}`}>
+                    Hunters
+                  </div>
+                  <div className="p-3 space-y-2">
+                    {hunterIds.map(id => {
+                      const p = players.find(pl => pl.id === id);
+                      return (
+                        <div key={id} className="flex items-center gap-2">
+                          <span className="text-base">🏌️</span>
+                          <span className={`font-semibold text-sm truncate ${huntersWon ? 'text-foreground' : 'text-muted-foreground'}`}>
+                            {p?.name}
+                          </span>
                         </div>
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0
-                          ${isSelected ? 'border-accent bg-accent text-white' : 'border-muted-foreground/30'}`}>
-                          {isSelected && <Check className="w-4 h-4" />}
-                        </div>
-                      </button>
-                    );
-                  })}
-              </div>
-            ) : !isDraw ? (
-              // Lone wolf / blind wolf: individual cards for all players
-              <div className="grid grid-cols-1 gap-2">
-                {players.map(player => {
-                  const isSelected = winnerIds.includes(player.id);
-                  const role = getPlayerRole(player.id);
-                  return (
-                    <button
-                      key={player.id}
-                      onClick={() => handleToggleWinner(player.id)}
-                      className={`flex items-center justify-between p-4 rounded-xl transition-all duration-200 border
-                        ${isSelected
-                          ? 'bg-accent/10 border-accent text-foreground shadow-md'
-                          : 'bg-white border-border text-muted-foreground hover:bg-muted/20'}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors
-                          ${isSelected ? 'bg-accent text-white' : 'bg-muted text-muted-foreground'}`}>
-                          {player.id === wolfId ? <span className="text-lg">🐺</span> : <span className="text-lg">🏌️</span>}
-                        </div>
-                        <div className="text-left">
-                          <div className={`font-bold text-lg ${isSelected ? 'text-foreground' : ''}`}>{player.name}</div>
-                          <div className="text-xs font-medium opacity-60">{role}</div>
-                        </div>
+                      );
+                    })}
+                  </div>
+                  {huntersWon && (
+                    <div className="px-3 pb-2 flex justify-end">
+                      <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
                       </div>
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0
-                        ${isSelected ? 'border-accent bg-accent text-white' : 'border-muted-foreground/30'}`}>
-                        {isSelected && <Check className="w-4 h-4" />}
-                      </div>
-                    </button>
-                  );
-                })}
+                    </div>
+                  )}
+                </button>
               </div>
-            ) : null}
+            )}
 
             {isDraw && (
               <div className="bg-muted/40 rounded-xl p-4 text-center text-muted-foreground font-medium">

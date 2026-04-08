@@ -172,12 +172,26 @@ export async function registerRoutes(
       const gameId = Number(req.params.gameId);
       const input = api.holes.submit.input.parse(req.body);
 
-      // Validate: if wolf has a partner, both must be in winnerIds (or neither)
-      if (!input.isLoneWolf && !input.isBlindWolf && input.partnerId && !input.isDraw) {
-        const wolfWins = input.winnerIds.includes(input.wolfId);
-        const partnerWins = input.winnerIds.includes(input.partnerId);
-        if (wolfWins !== partnerWins) {
-          return res.status(400).json({ message: "Wolf and partner must win or lose together" });
+      if (!input.isDraw) {
+        const players = await storage.getPlayers(gameId);
+        const wolfSideIds = (!input.isLoneWolf && !input.isBlindWolf && input.partnerId)
+          ? [input.wolfId, input.partnerId]
+          : [input.wolfId];
+        const hunterIds = players.map(p => p.id).filter(id => !wolfSideIds.includes(id));
+
+        // Wolf and partner must win or lose together
+        if (wolfSideIds.length > 1) {
+          const wolfWins = input.winnerIds.includes(input.wolfId);
+          const partnerWins = input.winnerIds.includes(input.partnerId!);
+          if (wolfWins !== partnerWins) {
+            return res.status(400).json({ message: "Wolf and partner must win or lose together" });
+          }
+        }
+
+        // Hunters must all win or all lose — never split
+        const huntersWinning = hunterIds.filter(id => input.winnerIds.includes(id));
+        if (huntersWinning.length > 0 && huntersWinning.length !== hunterIds.length) {
+          return res.status(400).json({ message: "Hunters win or lose as a team" });
         }
       }
 
@@ -209,12 +223,24 @@ export async function registerRoutes(
       const holeNumber = Number(req.params.holeNumber);
       const input = api.holes.edit.input.parse(req.body);
 
-      // Validate wolf+partner consistency
-      if (!input.isLoneWolf && !input.isBlindWolf && input.partnerId && !input.isDraw) {
-        const wolfWins = input.winnerIds.includes(input.wolfId);
-        const partnerWins = input.winnerIds.includes(input.partnerId);
-        if (wolfWins !== partnerWins) {
-          return res.status(400).json({ message: "Wolf and partner must win or lose together" });
+      if (!input.isDraw) {
+        const players = await storage.getPlayers(gameId);
+        const wolfSideIds = (!input.isLoneWolf && !input.isBlindWolf && input.partnerId)
+          ? [input.wolfId, input.partnerId]
+          : [input.wolfId];
+        const hunterIds = players.map(p => p.id).filter(id => !wolfSideIds.includes(id));
+
+        if (wolfSideIds.length > 1) {
+          const wolfWins = input.winnerIds.includes(input.wolfId);
+          const partnerWins = input.winnerIds.includes(input.partnerId!);
+          if (wolfWins !== partnerWins) {
+            return res.status(400).json({ message: "Wolf and partner must win or lose together" });
+          }
+        }
+
+        const huntersWinning = hunterIds.filter(id => input.winnerIds.includes(id));
+        if (huntersWinning.length > 0 && huntersWinning.length !== hunterIds.length) {
+          return res.status(400).json({ message: "Hunters win or lose as a team" });
         }
       }
 
