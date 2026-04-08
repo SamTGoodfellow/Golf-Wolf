@@ -2,7 +2,8 @@ import { useLocation } from "wouter";
 import { useCreateGame } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Flag, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -28,15 +29,7 @@ export default function Home() {
         className="w-full max-w-md space-y-12 text-center"
       >
         <div className="space-y-6">
-          <div className="relative mx-auto w-32 h-32 flex items-center justify-center">
-            <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping" />
-            <div className="relative bg-gradient-to-br from-primary to-green-700 rounded-3xl w-24 h-24 flex items-center justify-center shadow-2xl shadow-primary/30 rotate-6">
-              <span className="text-5xl">🐺</span>
-            </div>
-            <div className="absolute -bottom-2 -right-2 bg-white p-3 rounded-full shadow-lg border border-border">
-              <Flag className="w-6 h-6 text-accent" />
-            </div>
-          </div>
+          <Logo size="hero" />
           
           <div className="space-y-2">
             <h1 className="font-display font-black text-6xl tracking-tight text-foreground">

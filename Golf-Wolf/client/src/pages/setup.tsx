@@ -4,8 +4,8 @@ import { useGame, useCreatePlayer, useStartGame, useDeletePlayer } from "@/hooks
 import { PlayerCard } from "@/components/player-card";
 import { AddPlayerDialog } from "@/components/add-player-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Trophy, Users } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowRight, Users } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 
 export default function Setup() {
   const [match, params] = useRoute("/game/:id/setup");
@@ -36,12 +36,11 @@ export default function Setup() {
   };
 
   return (
-    <div className="min-h-screen pb-20 px-4 pt-8 max-w-lg mx-auto">
+    <div className="min-h-screen">
+      <PageHeader />
+      <div className="pb-20 px-4 pt-8 max-w-lg mx-auto">
       <div className="space-y-8">
         <div className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 mb-6 rotate-3">
-            <Trophy className="w-8 h-8 text-white" />
-          </div>
           <h1 className="font-display font-bold text-4xl text-foreground">
             Player Setup
           </h1>
@@ -94,6 +93,7 @@ export default function Setup() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

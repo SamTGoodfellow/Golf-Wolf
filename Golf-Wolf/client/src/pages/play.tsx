@@ -5,6 +5,7 @@ import { PlayerCard } from "@/components/player-card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RotateCcw, Trophy, Activity } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 
 export default function Play() {
   const [match, params] = useRoute("/game/:id");
@@ -36,20 +37,13 @@ export default function Play() {
 
   return (
     <div className="min-h-screen bg-muted/20">
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-border shadow-sm">
-        <div className="max-w-lg mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-              G
-            </div>
-            <span className="font-display font-bold text-lg">Golf Wolf</span>
-          </div>
+      <PageHeader
+        actions={
           <Button variant="ghost" size="icon" onClick={handleRestart} className="text-muted-foreground hover:text-destructive">
             <RotateCcw className="w-5 h-5" />
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       <main className="max-w-lg mx-auto px-4 py-6 pb-24">
         {isComplete ? (
