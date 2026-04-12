@@ -1,59 +1,33 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { HelpCircle } from "lucide-react";
 
-const rules = [
-  {
-    scenario: "Wolf + Partner Win 🏆",
-    wolf: "+2",
-    partner: "+2",
-    hunters: "0",
-    color: "bg-green-50 border-green-200",
-  },
-  {
-    scenario: "Wolf + Partner Lose 💀",
-    wolf: "0",
-    partner: "0",
-    hunters: "+3 each",
-    color: "bg-red-50 border-red-200",
-  },
-  {
-    scenario: "Lone Wolf Wins 👑",
-    wolf: "+4",
-    partner: "—",
-    hunters: "0",
-    color: "bg-blue-50 border-blue-200",
-  },
-  {
-    scenario: "Lone Wolf Loses 😬",
-    wolf: "0",
-    partner: "—",
-    hunters: "+1 each",
-    color: "bg-orange-50 border-orange-200",
-  },
-  {
-    scenario: "Blind Wolf Wins 🌑👑",
-    wolf: "+6",
-    partner: "—",
-    hunters: "0",
-    color: "bg-purple-50 border-purple-200",
-  },
-  {
-    scenario: "Blind Wolf Loses 💸",
-    wolf: "0",
-    partner: "—",
-    hunters: "+3 each",
-    color: "bg-pink-50 border-pink-200",
-  },
-  {
-    scenario: "Draw 🤝",
-    wolf: "0",
-    partner: "0",
-    hunters: "0",
-    color: "bg-gray-50 border-gray-200",
-  },
+const rules4P = [
+  { scenario: "Wolf + Partner Win 🏆", wolf: "+2", partner: "+2", hunters: "0", color: "bg-green-50 border-green-200" },
+  { scenario: "Wolf + Partner Lose 💀", wolf: "0", partner: "0", hunters: "+3 each", color: "bg-red-50 border-red-200" },
+  { scenario: "Lone Wolf Wins 👑", wolf: "+4", partner: "—", hunters: "0", color: "bg-blue-50 border-blue-200" },
+  { scenario: "Lone Wolf Loses 😬", wolf: "0", partner: "—", hunters: "+1 each", color: "bg-orange-50 border-orange-200" },
+  { scenario: "Blind Wolf Wins 🌑👑", wolf: "+6", partner: "—", hunters: "0", color: "bg-purple-50 border-purple-200" },
+  { scenario: "Blind Wolf Loses 💸", wolf: "0", partner: "—", hunters: "+3 each", color: "bg-pink-50 border-pink-200" },
+  { scenario: "Draw 🤝", wolf: "0", partner: "0", hunters: "0", color: "bg-gray-50 border-gray-200" },
 ];
 
-export function ScoringRulesSheet() {
+const rules3P = [
+  { scenario: "Wolf + Partner Win 🏆", wolf: "+2", partner: "+2", hunters: "0", color: "bg-green-50 border-green-200" },
+  { scenario: "Wolf + Partner Lose 💀", wolf: "0", partner: "0", hunters: "+3", color: "bg-red-50 border-red-200" },
+  { scenario: "Lone Wolf Wins 👑", wolf: "+4", partner: "—", hunters: "0", color: "bg-blue-50 border-blue-200" },
+  { scenario: "Lone Wolf Loses 😬", wolf: "0", partner: "—", hunters: "+2 each", color: "bg-orange-50 border-orange-200" },
+  { scenario: "Blind Wolf Wins 🌑👑", wolf: "+5", partner: "—", hunters: "0", color: "bg-purple-50 border-purple-200" },
+  { scenario: "Blind Wolf Loses 💸", wolf: "0", partner: "—", hunters: "+3 each", color: "bg-pink-50 border-pink-200" },
+  { scenario: "Draw 🤝", wolf: "0", partner: "0", hunters: "0", color: "bg-gray-50 border-gray-200" },
+];
+
+interface ScoringRulesSheetProps {
+  playerCount?: number;
+}
+
+export function ScoringRulesSheet({ playerCount }: ScoringRulesSheetProps) {
+  const rules = playerCount === 3 ? rules3P : rules4P;
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -64,6 +38,9 @@ export function ScoringRulesSheet() {
       <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
         <SheetHeader className="pb-4">
           <SheetTitle className="font-display text-2xl text-center">Scoring Rules 📋</SheetTitle>
+          {playerCount && (
+            <p className="text-center text-sm text-muted-foreground">{playerCount} players</p>
+          )}
         </SheetHeader>
         <div className="space-y-2 pb-6">
           {rules.map(rule => (
@@ -85,6 +62,11 @@ export function ScoringRulesSheet() {
               </div>
             </div>
           ))}
+          {playerCount === 4 && (
+            <p className="text-xs text-center text-muted-foreground pt-1">
+              Holes 17 & 18: lowest scorer becomes Wolf
+            </p>
+          )}
         </div>
       </SheetContent>
     </Sheet>

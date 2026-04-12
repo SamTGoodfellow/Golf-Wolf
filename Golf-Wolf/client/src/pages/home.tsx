@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useCreateGame } from "@/hooks/use-game";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Play } from "lucide-react";
+import { ArrowRight, BookOpen, Play, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/logo";
 
-const scoringRows = [
+const scoringRows4P = [
   { scenario: "Wolf + Partner Win", wolf: "+2", partner: "+2", hunters: "0", emoji: "🏆" },
   { scenario: "Wolf + Partner Lose", wolf: "0", partner: "0", hunters: "+3", emoji: "💀" },
   { scenario: "Lone Wolf Wins", wolf: "+4", partner: "—", hunters: "0", emoji: "👑" },
@@ -16,9 +18,21 @@ const scoringRows = [
   { scenario: "Draw", wolf: "0", partner: "0", hunters: "0", emoji: "🤝" },
 ];
 
+const scoringRows3P = [
+  { scenario: "Wolf + Partner Win", wolf: "+2", partner: "+2", hunters: "0", emoji: "🏆" },
+  { scenario: "Wolf + Partner Lose", wolf: "0", partner: "0", hunters: "+3", emoji: "💀" },
+  { scenario: "Lone Wolf Wins", wolf: "+4", partner: "—", hunters: "0", emoji: "👑" },
+  { scenario: "Lone Wolf Loses", wolf: "0", partner: "—", hunters: "+2", emoji: "😬" },
+  { scenario: "Blind Wolf Wins", wolf: "+5", partner: "—", hunters: "0", emoji: "🌑👑" },
+  { scenario: "Blind Wolf Loses", wolf: "0", partner: "—", hunters: "+3", emoji: "💸" },
+  { scenario: "Draw", wolf: "0", partner: "0", hunters: "0", emoji: "🤝" },
+];
+
 export default function Home() {
   const [, setLocation] = useLocation();
   const createGame = useCreateGame();
+  const [scoringOpen, setScoringOpen] = useState(false);
+  const [playerFilter, setPlayerFilter] = useState<"3" | "4">("4");
 
   const handleStart = () => {
     createGame.mutate(undefined, {
@@ -27,6 +41,8 @@ export default function Home() {
       },
     });
   };
+
+  const scoringRows = playerFilter === "3" ? scoringRows3P : scoringRows4P;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start p-6 relative overflow-hidden">
@@ -122,34 +138,74 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Scoring table */}
-            <div className="space-y-2">
-              <h3 className="font-display font-bold text-lg px-1">Scoring</h3>
-              <div className="bg-white/70 rounded-2xl overflow-hidden border border-white/40 shadow-sm">
-                <div className="grid grid-cols-4 text-xs font-bold text-muted-foreground uppercase tracking-wide bg-muted/40 px-3 py-2">
-                  <div className="col-span-1">Outcome</div>
-                  <div className="text-center">Wolf</div>
-                  <div className="text-center">Partner</div>
-                  <div className="text-center">Per Hunter</div>
+            {/* Scoring table — collapsible */}
+            <Collapsible open={scoringOpen} onOpenChange={setScoringOpen}>
+              <CollapsibleTrigger asChild>
+                <button className="w-full flex items-center justify-between px-1 py-1 group">
+                  <h3 className="font-display font-bold text-lg">Scoring</h3>
+                  <ChevronDown
+                    className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${scoringOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+              </CollapsibleTrigger>
+
+              <CollapsibleContent className="space-y-3 pt-1">
+                {/* 3P / 4P toggle */}
+                <div className="flex gap-1 bg-muted/40 rounded-xl p-1">
+                  <button
+                    onClick={() => setPlayerFilter("3")}
+                    className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                      playerFilter === "3"
+                        ? "bg-white shadow-sm text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    3 Players
+                  </button>
+                  <button
+                    onClick={() => setPlayerFilter("4")}
+                    className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                      playerFilter === "4"
+                        ? "bg-white shadow-sm text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    4 Players
+                  </button>
                 </div>
-                {scoringRows.map((row, i) => (
-                  <div key={row.scenario} className={`grid grid-cols-4 px-3 py-2.5 text-sm items-center ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
-                    <div className="col-span-1 font-medium text-foreground text-xs leading-tight">
-                      {row.emoji} {row.scenario}
-                    </div>
-                    <div className={`text-center font-bold ${row.wolf !== "0" && row.wolf !== "—" ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      {row.wolf}
-                    </div>
-                    <div className={`text-center font-bold ${row.partner !== "0" && row.partner !== "—" ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      {row.partner}
-                    </div>
-                    <div className={`text-center font-bold ${row.hunters !== "0" && row.hunters !== "—" ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      {row.hunters}
-                    </div>
+
+                <div className="bg-white/70 rounded-2xl overflow-hidden border border-white/40 shadow-sm">
+                  <div className="grid grid-cols-4 text-xs font-bold text-muted-foreground uppercase tracking-wide bg-muted/40 px-3 py-2">
+                    <div className="col-span-1">Outcome</div>
+                    <div className="text-center">Wolf</div>
+                    <div className="text-center">Partner</div>
+                    <div className="text-center">{playerFilter === "4" ? "Per Hunter" : "Hunter"}</div>
                   </div>
-                ))}
-              </div>
-            </div>
+                  {scoringRows.map((row, i) => (
+                    <div key={row.scenario} className={`grid grid-cols-4 px-3 py-2.5 text-sm items-center ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
+                      <div className="col-span-1 font-medium text-foreground text-xs leading-tight">
+                        {row.emoji} {row.scenario}
+                      </div>
+                      <div className={`text-center font-bold ${row.wolf !== "0" && row.wolf !== "—" ? 'text-green-600' : 'text-muted-foreground'}`}>
+                        {row.wolf}
+                      </div>
+                      <div className={`text-center font-bold ${row.partner !== "0" && row.partner !== "—" ? 'text-green-600' : 'text-muted-foreground'}`}>
+                        {row.partner}
+                      </div>
+                      <div className={`text-center font-bold ${row.hunters !== "0" && row.hunters !== "—" ? 'text-green-600' : 'text-muted-foreground'}`}>
+                        {row.hunters}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {playerFilter === "4" && (
+                  <p className="text-xs text-center text-muted-foreground px-1">
+                    Holes 17 & 18: lowest scorer becomes Wolf 🐺
+                  </p>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           </TabsContent>
         </Tabs>
       </motion.div>

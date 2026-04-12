@@ -149,7 +149,7 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 // WOLF ROTATION HELPERS
 // ============================================
 
-/** Returns the wolf's player ID for a given hole.
+/** Returns the wolf's player ID for a given hole using standard rotation.
  *  Hole 1 wolf = last player (highest position). Rotates backwards from there.
  *  e.g. 4 players: hole 1 → pos 4, hole 2 → pos 1, hole 3 → pos 2, hole 4 → pos 3
  */
@@ -158,9 +158,33 @@ export function getWolfId(playerOrder: number[], holeNumber: number): number {
   return playerOrder[(holeNumber + len - 2) % len];
 }
 
+/** Returns the wolf's player ID, applying special rules:
+ *  - 4-player games, holes 17 & 18: wolf is the player with the lowest score.
+ *  - All other cases: standard rotation via getWolfId.
+ *  Ties in score are broken by playerOrder position.
+ */
+export function resolveWolfId(
+  playerOrder: number[],
+  holeNumber: number,
+  players?: Array<{ id: number; score: number }>
+): number {
+  if (playerOrder.length === 4 && (holeNumber === 17 || holeNumber === 18) && players && players.length === 4) {
+    const sorted = [...players].sort((a, b) => {
+      if (a.score !== b.score) return a.score - b.score;
+      return playerOrder.indexOf(a.id) - playerOrder.indexOf(b.id);
+    });
+    return sorted[0].id;
+  }
+  return getWolfId(playerOrder, holeNumber);
+}
+
 /** Returns tee-off order for a hole: all non-wolf players in sequence, wolf last */
-export function getTeeOffOrder(playerOrder: number[], holeNumber: number): number[] {
-  const wolfId = getWolfId(playerOrder, holeNumber);
+export function getTeeOffOrder(
+  playerOrder: number[],
+  holeNumber: number,
+  players?: Array<{ id: number; score: number }>
+): number[] {
+  const wolfId = resolveWolfId(playerOrder, holeNumber, players);
   return [...playerOrder.filter(id => id !== wolfId), wolfId];
 }
 

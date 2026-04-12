@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { type Player, type Game, type HoleResult } from "@shared/schema";
 import { useSubmitHole, useEditHole } from "@/hooks/use-game";
-import { getWolfId, getTeeOffOrder } from "@shared/routes";
+import { resolveWolfId, getTeeOffOrder } from "@shared/routes";
 import { Check, AlertCircle, Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -43,8 +43,8 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
   const holeNumber = isEditing ? editingResult!.holeNumber : game.currentHole;
   const playerOrder = game.playerOrder ?? players.map(p => p.id);
 
-  const wolfId = getWolfId(playerOrder, holeNumber);
-  const teeOffOrder = getTeeOffOrder(playerOrder, holeNumber);
+  const wolfId = resolveWolfId(playerOrder, holeNumber, players);
+  const teeOffOrder = getTeeOffOrder(playerOrder, holeNumber, players);
 
   const initial = buildInitialState(editingResult);
   const [decision, setDecision] = useState<WolfDecision | null>(initial.decision);
@@ -56,6 +56,10 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
   const editHole = useEditHole();
 
   const wolf = players.find(p => p.id === wolfId);
+
+  const is3Player = players.length === 3;
+  const blindWolfWin = is3Player ? 5 : 6;
+  const loneWolfLoss = is3Player ? 2 : 1;
 
   // Wolf side = wolf alone (lone/blind) or wolf + partner
   const wolfSideIds = decision === "partner" && partnerId ? [wolfId, partnerId] : [wolfId];
@@ -171,6 +175,9 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
               <span className="font-display font-bold text-xl text-foreground">{wolf?.name}</span>
               <span className="text-2xl">🐺</span>
             </div>
+            {players.length === 4 && (holeNumber === 17 || holeNumber === 18) && (
+              <p className="text-xs text-amber-600 font-semibold mt-0.5">Lowest scorer goes Wolf</p>
+            )}
           </div>
         </div>
 
@@ -221,7 +228,7 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
             <div className="text-left">
               <div className="font-bold text-lg">Blind Wolf 🐺🌑</div>
               <div className={`text-xs mt-0.5 ${decision === "blind" ? 'text-purple-100' : 'text-muted-foreground'}`}>
-                Declared before anyone tees off · Win +6 · Loss −3 each
+                Declared before anyone tees off · Win +{blindWolfWin} · Loss −3 each
               </div>
             </div>
             {decision === "blind" && <Check className="w-5 h-5 flex-shrink-0" />}
@@ -238,7 +245,7 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
             <div className="text-left">
               <div className="font-bold text-lg">Lone Wolf 🐺👑</div>
               <div className={`text-xs mt-0.5 ${decision === "lone" ? 'text-blue-100' : 'text-muted-foreground'}`}>
-                Wolf vs everyone · Win +4 · Loss −1 each
+                Wolf vs everyone · Win +4 · Loss −{loneWolfLoss} each
               </div>
             </div>
             {decision === "lone" && <Check className="w-5 h-5 flex-shrink-0" />}
