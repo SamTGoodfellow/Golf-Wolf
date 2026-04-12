@@ -9,23 +9,15 @@ import { ArrowRight, BookOpen, Play, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/logo";
 
 const scoringRows4P = [
-  { scenario: "Wolf + Partner Win", wolf: "+2", partner: "+2", hunters: "0", emoji: "🏆" },
-  { scenario: "Wolf + Partner Lose", wolf: "0", partner: "0", hunters: "+3", emoji: "💀" },
-  { scenario: "Lone Wolf Wins", wolf: "+4", partner: "—", hunters: "0", emoji: "👑" },
-  { scenario: "Lone Wolf Loses", wolf: "0", partner: "—", hunters: "+1", emoji: "😬" },
-  { scenario: "Blind Wolf Wins", wolf: "+6", partner: "—", hunters: "0", emoji: "🌑👑" },
-  { scenario: "Blind Wolf Loses", wolf: "0", partner: "—", hunters: "+3", emoji: "💸" },
-  { scenario: "Draw", wolf: "0", partner: "0", hunters: "0", emoji: "🤝" },
+  { scenario: "Partner", emoji: "🤝", wolfWin: "+2", wolfLose: "0", huntersWin: "0", huntersLose: "+3" },
+  { scenario: "Lone Wolf", emoji: "👑", wolfWin: "+4", wolfLose: "0", huntersWin: "0", huntersLose: "+1" },
+  { scenario: "Blind Wolf", emoji: "🌑", wolfWin: "+6", wolfLose: "0", huntersWin: "0", huntersLose: "+3" },
 ];
 
 const scoringRows3P = [
-  { scenario: "Wolf + Partner Win", wolf: "+2", partner: "+2", hunters: "0", emoji: "🏆" },
-  { scenario: "Wolf + Partner Lose", wolf: "0", partner: "0", hunters: "+3", emoji: "💀" },
-  { scenario: "Lone Wolf Wins", wolf: "+4", partner: "—", hunters: "0", emoji: "👑" },
-  { scenario: "Lone Wolf Loses", wolf: "0", partner: "—", hunters: "+2", emoji: "😬" },
-  { scenario: "Blind Wolf Wins", wolf: "+5", partner: "—", hunters: "0", emoji: "🌑👑" },
-  { scenario: "Blind Wolf Loses", wolf: "0", partner: "—", hunters: "+3", emoji: "💸" },
-  { scenario: "Draw", wolf: "0", partner: "0", hunters: "0", emoji: "🤝" },
+  { scenario: "Partner", emoji: "🤝", wolfWin: "+2", wolfLose: "0", huntersWin: "0", huntersLose: "+3" },
+  { scenario: "Lone Wolf", emoji: "👑", wolfWin: "+4", wolfLose: "0", huntersWin: "0", huntersLose: "+2" },
+  { scenario: "Blind Wolf", emoji: "🌑", wolfWin: "+5", wolfLose: "0", huntersWin: "0", huntersLose: "+3" },
 ];
 
 export default function Home() {
@@ -43,7 +35,6 @@ export default function Home() {
   };
 
   const scoringRows = playerFilter === "3" ? scoringRows3P : scoringRows4P;
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-start p-6 relative overflow-hidden">
       {/* Background */}
@@ -175,28 +166,34 @@ export default function Home() {
                 </div>
 
                 <div className="bg-white/70 rounded-2xl overflow-hidden border border-white/40 shadow-sm">
-                  <div className="grid grid-cols-4 text-xs font-bold text-muted-foreground uppercase tracking-wide bg-muted/40 px-3 py-2">
-                    <div className="col-span-1">Outcome</div>
-                    <div className="text-center">Wolf</div>
-                    <div className="text-center">Partner</div>
-                    <div className="text-center">{playerFilter === "4" ? "Per Hunter" : "Hunter"}</div>
+                  {/* Header */}
+                  <div className="grid grid-cols-3 text-xs font-bold text-muted-foreground uppercase tracking-wide bg-muted/40 px-3 py-2">
+                    <div>Scenario</div>
+                    <div className="text-center">Wolf Team</div>
+                    <div className="text-center">Hunters</div>
                   </div>
+
+                  {/* Scenario rows */}
                   {scoringRows.map((row, i) => (
-                    <div key={row.scenario} className={`grid grid-cols-4 px-3 py-2.5 text-sm items-center ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
-                      <div className="col-span-1 font-medium text-foreground text-xs leading-tight">
+                    <div key={row.scenario} className={`grid grid-cols-3 px-3 py-2.5 items-center border-t border-border/20 ${i % 2 !== 0 ? 'bg-muted/10' : ''}`}>
+                      <div className="text-sm font-semibold text-foreground leading-tight">
                         {row.emoji} {row.scenario}
                       </div>
-                      <div className={`text-center font-bold ${row.wolf !== "0" && row.wolf !== "—" ? 'text-green-600' : 'text-muted-foreground'}`}>
-                        {row.wolf}
+                      <div className="text-center space-y-0.5">
+                        <div className="text-xs font-bold text-green-600">Win {row.wolfWin}</div>
+                        <div className="text-xs font-medium text-muted-foreground">Lose {row.wolfLose}</div>
                       </div>
-                      <div className={`text-center font-bold ${row.partner !== "0" && row.partner !== "—" ? 'text-green-600' : 'text-muted-foreground'}`}>
-                        {row.partner}
-                      </div>
-                      <div className={`text-center font-bold ${row.hunters !== "0" && row.hunters !== "—" ? 'text-green-600' : 'text-muted-foreground'}`}>
-                        {row.hunters}
+                      <div className="text-center space-y-0.5">
+                        <div className="text-xs font-medium text-muted-foreground">Win {row.huntersWin}</div>
+                        <div className="text-xs font-bold text-green-600">Lose {row.huntersLose}</div>
                       </div>
                     </div>
                   ))}
+
+                  {/* Draw row */}
+                  <div className="px-3 py-2.5 border-t border-border/20 bg-muted/10">
+                    <div className="text-center text-xs text-muted-foreground font-medium">🤝 Draw — no points awarded</div>
+                  </div>
                 </div>
 
                 {playerFilter === "4" && (
