@@ -95,15 +95,15 @@ export default function Home() {
           <TabsContent value="how" className="mt-0 space-y-5 focus-visible:outline-none pb-8">
             {/* Jokey intro */}
             <div className="bg-white/70 backdrop-blur rounded-2xl p-5 border border-white/40 shadow-sm space-y-3">
-              <h2 className="font-display font-bold text-xl">Right lads, listen up 🐺</h2>
+              <h2 className="font-display font-bold text-xl">Right then, listen up 🐺</h2>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 Wolf is one of golf's most popular betting formats — chances are you already know how it works. <strong>Golf Wolf</strong> is the app to keep score while you play it with your mates. Add your players, set the tee-off order, and we'll handle the points.
               </p>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Each hole, one player is <strong>The Wolf</strong>. They tee off last and watch everyone else hit. After each shot, they decide: <strong>pick that player as their partner</strong>, or pass and wait for the next one. Miss your window before the next player swings? That's gone — no going back. Once the Wolf steps up to tee, they either take whoever they last picked or go it alone.
+                Each hole, one player is <strong>The Wolf</strong>. They tee off last and watch everyone else hit. After each shot, they decide: <strong>pick that player as their partner</strong>, or pass and wait for the next one. Miss your window before the next player swings? That's gone — no going back. Once the Wolf steps up to tee, they either take the partner they picked or go it alone — you can't pick someone, change your mind, and pick someone else.
               </p>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Everyone plays their own ball. The hole is won by whichever side posts the <strong>lowest net score</strong> — handicaps apply, so know your shots. Golf Wolf tracks the points, not your arithmetic. You'll have to work the handicap strokes out yourselves lads, we're not miracle workers.
+                Everyone plays their own ball. The hole is won by whichever side posts the <strong>lowest net score</strong> — handicaps apply, so know your shots. Golf Wolf tracks the points, not your arithmetic. You'll have to work the handicap strokes out yourselves folks, we're not miracle workers.
               </p>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 Think you've got the nerve to call <strong>Blind Wolf</strong> before anyone tees off? Be our guest — just don't cry about it at the 19th.
