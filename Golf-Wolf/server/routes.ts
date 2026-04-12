@@ -7,9 +7,8 @@ import type { HoleResult } from "@shared/schema";
 
 // ============================================
 // SCORING CONSTANTS
-// Easy to extend for different player counts or rule variants later
 // ============================================
-const SCORING = {
+const SCORING_4P = {
   loneWolfWin: 4,
   loneWolfLossPerOpponent: 1,
   wolfPartnerWin: 2,
@@ -18,17 +17,31 @@ const SCORING = {
   blindWolfLossPerOpponent: 3,
 };
 
+const SCORING_3P = {
+  loneWolfWin: 4,
+  loneWolfLossPerOpponent: 2,
+  wolfPartnerWin: 2,
+  wolfPartnerLossPerOpponent: 3,
+  blindWolfWin: 5,
+  blindWolfLossPerOpponent: 3,
+};
+
+function getScoringConstants(playerCount: number) {
+  return playerCount === 3 ? SCORING_3P : SCORING_4P;
+}
+
 // Recalculate all player scores from scratch using every hole result.
 // Called after any submit or edit to keep scores consistent.
 async function recalculateAllScores(gameId: number): Promise<void> {
   const results = await storage.getHoleResults(gameId);
   const players = await storage.getPlayers(gameId);
   const playerIds = players.map(p => p.id);
+  const scoring = getScoringConstants(players.length);
 
   const scores = new Map<number, number>(playerIds.map(id => [id, 0]));
 
   for (const result of results) {
-    applyResultToScores(result, playerIds, scores);
+    applyResultToScores(result, playerIds, scores, scoring);
   }
 
   for (const [playerId, score] of scores) {
@@ -39,7 +52,8 @@ async function recalculateAllScores(gameId: number): Promise<void> {
 function applyResultToScores(
   result: HoleResult,
   playerIds: number[],
-  scores: Map<number, number>
+  scores: Map<number, number>,
+  scoring: ReturnType<typeof getScoringConstants>
 ): void {
   if (result.isDraw) return; // Draw: no points change
 
@@ -48,29 +62,29 @@ function applyResultToScores(
 
   if (result.isBlindWolf) {
     if (isWolfWin) {
-      scores.set(result.wolfId, (scores.get(result.wolfId) ?? 0) + SCORING.blindWolfWin);
+      scores.set(result.wolfId, (scores.get(result.wolfId) ?? 0) + scoring.blindWolfWin);
     } else {
       for (const opId of playerIds.filter(id => id !== result.wolfId)) {
-        scores.set(opId, (scores.get(opId) ?? 0) + SCORING.blindWolfLossPerOpponent);
+        scores.set(opId, (scores.get(opId) ?? 0) + scoring.blindWolfLossPerOpponent);
       }
     }
   } else if (result.isLoneWolf) {
     if (isWolfWin) {
-      scores.set(result.wolfId, (scores.get(result.wolfId) ?? 0) + SCORING.loneWolfWin);
+      scores.set(result.wolfId, (scores.get(result.wolfId) ?? 0) + scoring.loneWolfWin);
     } else {
       for (const opId of playerIds.filter(id => id !== result.wolfId)) {
-        scores.set(opId, (scores.get(opId) ?? 0) + SCORING.loneWolfLossPerOpponent);
+        scores.set(opId, (scores.get(opId) ?? 0) + scoring.loneWolfLossPerOpponent);
       }
     }
   } else if (result.partnerId) {
     const wolfAndPartner = [result.wolfId, result.partnerId];
     if (isWolfWin) {
       for (const id of wolfAndPartner) {
-        scores.set(id, (scores.get(id) ?? 0) + SCORING.wolfPartnerWin);
+        scores.set(id, (scores.get(id) ?? 0) + scoring.wolfPartnerWin);
       }
     } else {
       for (const opId of playerIds.filter(id => !wolfAndPartner.includes(id))) {
-        scores.set(opId, (scores.get(opId) ?? 0) + SCORING.wolfPartnerLossPerOpponent);
+        scores.set(opId, (scores.get(opId) ?? 0) + scoring.wolfPartnerLossPerOpponent);
       }
     }
   }

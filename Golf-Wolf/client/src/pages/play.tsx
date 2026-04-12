@@ -49,7 +49,7 @@ export default function Play() {
       <PageHeader
         actions={
           <>
-            <ScoringRulesSheet />
+            <ScoringRulesSheet playerCount={players.length} />
             <Button variant="ghost" size="icon" onClick={handleRestart} className="text-muted-foreground hover:text-destructive">
               <RotateCcw className="w-5 h-5" />
             </Button>
