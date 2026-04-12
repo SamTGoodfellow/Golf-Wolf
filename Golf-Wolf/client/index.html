@@ -3,10 +3,163 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+
+    <!-- Primary SEO -->
+    <title>Golf Wolf — Wolf Golf Scorer App</title>
+    <meta name="description" content="Free scorer app for the Wolf golf format. Track points for 3 or 4 players across 18 holes. No account needed — just add your players and go." />
+    <meta name="keywords" content="wolf golf, wolf golf format, wolf golf scorer, golf wolf, wolf golf rules, wolf golf app, golf betting game, lone wolf golf, blind wolf golf" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Golf Wolf — Wolf Golf Scorer App" />
+    <meta property="og:description" content="Free scorer app for the Wolf golf format. Track points for 3 or 4 players across 18 holes. No account needed." />
+    <meta property="og:site_name" content="Golf Wolf" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Golf Wolf — Wolf Golf Scorer App" />
+    <meta name="twitter:description" content="Free scorer app for the Wolf golf format. Track points for 3 or 4 players across 18 holes. No account needed." />
+
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="/favicon.png" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fira+Code:wght@300..700&family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Outfit:wght@100..900&family=Oxanium:wght@200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+
+    <!-- Structured Data: App + How to Play + FAQ -->
+    <script type="application/ld+json">
+    [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Golf Wolf",
+        "description": "Free scoring app for the Wolf golf format. Supports 3 and 4 players across 18 holes with automatic Wolf rotation, Lone Wolf and Blind Wolf variants, and editable hole results.",
+        "applicationCategory": "SportsApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "GBP"
+        },
+        "featureList": [
+          "3-player and 4-player Wolf scoring",
+          "Lone Wolf and Blind Wolf variants",
+          "Automatic Wolf rotation across 18 holes",
+          "Holes 17 and 18 lowest-scorer Wolf rule (4-player)",
+          "Editable hole results",
+          "No account required"
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        "name": "How to Play Wolf Golf",
+        "description": "Wolf is a popular golf betting format for 3 or 4 players. One player per hole is The Wolf, who watches each other player's tee shot and decides whether to pick them as a partner or go it alone.",
+        "step": [
+          {
+            "@type": "HowToStep",
+            "position": 1,
+            "name": "Set the tee-off order",
+            "text": "Before the round, agree on a tee-off order for all players. This determines who is The Wolf on each hole. The last player in the order is Wolf on hole 1, and the role rotates each hole."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 2,
+            "name": "The Wolf tees off last",
+            "text": "On every hole, The Wolf tees off last. The other players tee off in order before them."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 3,
+            "name": "Pick a partner or go alone",
+            "text": "After each player's tee shot, The Wolf immediately decides whether to pick that player as their partner. The decision is final — they cannot go back once the next player tees off. If The Wolf passes on everyone, they become Lone Wolf."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 4,
+            "name": "Optional: declare Blind Wolf",
+            "text": "Before any player tees off, The Wolf can declare Blind Wolf — going it alone with no information. Higher risk, higher reward."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 5,
+            "name": "Play the hole",
+            "text": "Everyone plays their own ball. The hole is won by whichever team posts the lowest net score, with handicap strokes applied."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 6,
+            "name": "Score the points (4-player)",
+            "text": "Wolf and partner win: +2 each. Wolf and partner lose: hunters get +3 each. Lone Wolf wins: +4. Lone Wolf loses: hunters get +1 each. Blind Wolf wins: +6. Blind Wolf loses: hunters get +3 each."
+          },
+          {
+            "@type": "HowToStep",
+            "position": 7,
+            "name": "Score the points (3-player)",
+            "text": "Wolf and partner win: +2 each. Wolf and partner lose: hunter gets +3. Lone Wolf wins: +4. Lone Wolf loses: hunters get +2 each. Blind Wolf wins: +5. Blind Wolf loses: hunters get +3 each."
+          }
+        ]
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is the Wolf golf format?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Wolf is a popular golf betting game for 3 or 4 players. Each hole, one player is The Wolf. The Wolf tees off last and watches the other players' tee shots, deciding after each shot whether to pick that player as a partner. The Wolf can go it alone (Lone Wolf) or declare Blind Wolf before anyone tees off for higher stakes."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does Wolf golf scoring work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "In 4-player Wolf: Wolf and partner win = +2 points each; Wolf and partner lose = hunters get +3 each; Lone Wolf wins = +4 points; Lone Wolf loses = hunters get +1 each; Blind Wolf wins = +6 points; Blind Wolf loses = hunters get +3 each. Draw = no points. In 3-player Wolf the values differ slightly: Lone Wolf loses = hunters get +2 each; Blind Wolf wins = +5."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is a Blind Wolf in golf?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "A Blind Wolf is when The Wolf declares they are going alone before any other player has teed off on that hole. It carries the highest stakes: winning as Blind Wolf earns +6 points (4-player) or +5 points (3-player), but losing means each hunter gets +3 points."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can you play Wolf golf with 3 players?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Wolf works with 3 players. With 3 players there is only one hunter when the Wolf picks a partner, so the scoring is adjusted: Lone Wolf loses = hunters get +2 each (vs +1 in 4-player); Blind Wolf wins = +5 (vs +6 in 4-player). All other point values stay the same."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What happens on holes 17 and 18 in Wolf golf?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "In 4-player Wolf, a common rule is that on holes 17 and 18 the player with the lowest overall score becomes The Wolf, instead of following the normal rotation. This gives trailing players a chance to recover on the final holes."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is Golf Wolf the app?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Golf Wolf is a free web app that keeps score for you during a Wolf golf game. Add your players, set the tee-off order, and the app handles Wolf rotation, point calculation, and the leaderboard across all 18 holes. No account required."
+            }
+          }
+        ]
+      }
+    ]
+    </script>
   </head>
   <body>
     <div id="root"></div>

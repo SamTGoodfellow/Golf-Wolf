@@ -95,6 +95,31 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // ============================================
+  // SEO ROUTES
+  // ============================================
+
+  app.get("/robots.txt", (_req, res) => {
+    const appUrl = process.env.APP_URL ?? "";
+    res.type("text/plain").send(
+      `User-agent: *\nAllow: /\n${appUrl ? `Sitemap: ${appUrl}/sitemap.xml\n` : ""}`
+    );
+  });
+
+  app.get("/sitemap.xml", (req, res) => {
+    const appUrl = process.env.APP_URL ?? `${req.protocol}://${req.get("host")}`;
+    res.type("application/xml").send(
+      `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${appUrl}/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`
+    );
+  });
+
   // Create Game
   app.post(api.games.create.path, async (req, res) => {
     const game = await storage.createGame();
