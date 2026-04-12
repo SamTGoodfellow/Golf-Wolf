@@ -95,7 +95,7 @@ export default function Home() {
           <TabsContent value="how" className="mt-0 space-y-5 focus-visible:outline-none pb-8">
             {/* Jokey intro */}
             <div className="bg-white/70 backdrop-blur rounded-2xl p-5 border border-white/40 shadow-sm space-y-3">
-              <h2 className="font-display font-bold text-xl">Right lads, listen up 🐺</h2>
+              <h2 className="font-display font-bold text-xl">Right then, listen up 🐺</h2>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 Wolf is one of golf's most popular betting formats — chances are you already know how it works. <strong>Golf Wolf</strong> is the app to keep score while you play it with your mates. Add your players, set the tee-off order, and we'll handle the points.
               </p>
