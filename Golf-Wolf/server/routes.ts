@@ -147,7 +147,8 @@ export async function registerRoutes(
     try {
       const summary = await generateRoundSummary(players, results);
       res.json({ summary });
-    } catch {
+    } catch (err) {
+      console.error("Gemini error:", err);
       res.status(500).json({ message: "Failed to generate summary" });
     }
   });
