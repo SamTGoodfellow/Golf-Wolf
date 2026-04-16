@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl, type CreatePlayerInput, type SubmitHoleInput, type EditHoleInput, type SetOrderInput } from "@shared/routes";
+import posthog from "@/lib/analytics";
 
 // GET /api/games/:id
 export function useGame(id: number | null) {
@@ -66,6 +67,7 @@ export function useStartGame() {
       return api.games.start.responses[200].parse(await res.json());
     },
     onSuccess: (data) => {
+      posthog.capture("game_started", { game_id: data.id });
       queryClient.invalidateQueries({ queryKey: [api.games.get.path, data.id] });
     },
   });
@@ -142,7 +144,8 @@ export function useSubmitHole() {
       }
       return api.holes.submit.responses[200].parse(await res.json());
     },
-    onSuccess: (_, { gameId }) => {
+    onSuccess: (data, { gameId }) => {
+      if (data.holeNumber === 18) posthog.capture("game_ended", { game_id: gameId });
       queryClient.invalidateQueries({ queryKey: [api.games.get.path, gameId] });
     },
   });
