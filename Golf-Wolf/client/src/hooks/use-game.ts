@@ -151,6 +151,23 @@ export function useSubmitHole() {
   });
 }
 
+// POST /api/games/:id/summary
+export function useGameSummary(gameId: number | null, enabled: boolean) {
+  return useQuery({
+    queryKey: [api.games.summary.path, gameId],
+    queryFn: async () => {
+      if (!gameId) throw new Error("No game ID");
+      const url = buildUrl(api.games.summary.path, { id: gameId });
+      const res = await fetch(url, { method: api.games.summary.method });
+      if (!res.ok) throw new Error("Failed to generate summary");
+      return api.games.summary.responses[200].parse(await res.json());
+    },
+    enabled: !!gameId && enabled,
+    staleTime: Infinity,
+    retry: 1,
+  });
+}
+
 // PUT /api/games/:gameId/holes/:holeNumber
 export function useEditHole() {
   const queryClient = useQueryClient();

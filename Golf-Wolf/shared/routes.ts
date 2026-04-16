@@ -59,6 +59,15 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    summary: {
+      method: 'POST' as const,
+      path: '/api/games/:id/summary',
+      responses: {
+        200: z.object({ summary: z.string() }),
+        404: errorSchemas.notFound,
+        500: errorSchemas.internal,
+      },
+    },
     setOrder: {
       method: 'POST' as const,
       path: '/api/games/:id/order',

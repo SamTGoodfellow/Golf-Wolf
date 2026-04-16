@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useGame, useRestartGame } from "@/hooks/use-game";
+import { useGame, useRestartGame, useGameSummary } from "@/hooks/use-game";
 import { HoleScorer } from "@/components/hole-scorer";
 import { PlayerCard } from "@/components/player-card";
 import { HoleHistory } from "@/components/hole-history";
@@ -34,6 +34,7 @@ export default function Play() {
 
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
   const isComplete = game.status === "complete";
+  const { data: summaryData, isLoading: summaryLoading } = useGameSummary(gameId, isComplete);
 
   const handleRestart = () => {
     if (!gameId) return;
@@ -77,6 +78,17 @@ export default function Play() {
                   isWinner={index === 0}
                 />
               ))}
+            </div>
+
+            <div className="rounded-2xl bg-white/60 backdrop-blur border border-white/30 shadow-sm px-5 py-4 text-left space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">The Verdict</p>
+              {summaryLoading ? (
+                <p className="text-sm text-muted-foreground animate-pulse">Consulting the commentator...</p>
+              ) : summaryData?.summary ? (
+                <p className="text-sm leading-relaxed text-foreground">{summaryData.summary}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">No verdict available.</p>
+              )}
             </div>
 
             <div className="space-y-3 text-left">

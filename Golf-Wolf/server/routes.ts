@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import type { HoleResult } from "@shared/schema";
+import { generateRoundSummary } from "./gemini";
 
 // ============================================
 // SCORING CONSTANTS
@@ -134,6 +135,21 @@ export async function registerRoutes(
     const players = await storage.getPlayers(id);
     const results = await storage.getHoleResults(id);
     res.json({ game, players, results });
+  });
+
+  // Generate Round Summary
+  app.post(api.games.summary.path, async (req, res) => {
+    const id = Number(req.params.id);
+    const game = await storage.getGame(id);
+    if (!game) return res.status(404).json({ message: "Game not found" });
+    const players = await storage.getPlayers(id);
+    const results = await storage.getHoleResults(id);
+    try {
+      const summary = await generateRoundSummary(players, results);
+      res.json({ summary });
+    } catch {
+      res.status(500).json({ message: "Failed to generate summary" });
+    }
   });
 
   // Set Player Order
