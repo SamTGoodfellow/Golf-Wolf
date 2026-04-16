@@ -1,8 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import type { Player, HoleResult } from "@shared/schema";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function generateRoundSummary(
   players: Player[],
@@ -36,6 +35,11 @@ ${standings}
 Notable moments:
 ${moments.length > 0 ? moments.join("\n") : "No Lone Wolf or Blind Wolf plays this round."}`;
 
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [{ role: "user", content: prompt }],
+    max_tokens: 200,
+  });
+
+  return completion.choices[0].message.content ?? "";
 }
