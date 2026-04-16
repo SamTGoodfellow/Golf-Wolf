@@ -11,8 +11,10 @@ export async function generateRoundSummary(
   const playerMap = new Map(players.map((p) => [p.id, p.name]));
 
   const standings = sorted
-    .map((p, i) => `${i + 1}. ${p.name}: ${p.score} pts`)
+    .map((p, i) => `${i + 1}. ${p.name}: ${p.score} pts (handicap ${p.handicap})`)
     .join("\n");
+
+  const bandits = players.filter((p) => p.handicap >= 18).map((p) => p.name);
 
   const moments: string[] = [];
   for (const r of results) {
@@ -27,13 +29,14 @@ export async function generateRoundSummary(
     }
   }
 
-  const prompt = `You are a sharp-tongued but affectionate golf commentator writing the post-round wrap-up for a game of Wolf golf. Write exactly 3–4 sentences. Be specific with player names. Celebrate the winner — genuine praise, maybe a little smug on their behalf. Absolutely rinse the player who came last — no mercy, but keep it fun. If anyone went Blind Wolf or Lone Wolf, call it out with drama. If the winner's margin was slim, question whether they really deserved it. Keep it punchy.
+  const prompt = `You are a savage golf commentator with zero sympathy. Write exactly 3–4 sentences. Be specific with player names. Celebrate the winner like they're a legend — but if their margin was slim, make it clear they barely scraped it. For the player who came last: destroy them. Be genuinely ruthless — mock their decisions, question their ability, suggest they take up a different sport. If anyone went Blind Wolf or Lone Wolf, dramatise it — heroic if it worked, humiliating if it didn't. No softening, no consolation prizes.
 
 Final standings:
 ${standings}
 
 Notable moments:
-${moments.length > 0 ? moments.join("\n") : "No Lone Wolf or Blind Wolf plays this round."}`;
+${moments.length > 0 ? moments.join("\n") : "No Lone Wolf or Blind Wolf plays this round."}
+${bandits.length > 0 ? `\nSuspected bandits (high handicap players who may be hiding their true ability): ${bandits.join(", ")}. If any of them won or performed well, call them out as bandits — question whether their handicap is legitimate.` : ""}`;
 
   const completion = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
