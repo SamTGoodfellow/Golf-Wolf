@@ -14,7 +14,8 @@ export async function generateRoundSummary(
     .map((p, i) => `${i + 1}. ${p.name}: ${p.score} pts (handicap ${p.handicap})`)
     .join("\n");
 
-  const bandits = players.filter((p) => p.handicap >= 18).map((p) => p.name);
+  const highestHandicap = Math.max(...players.map((p) => p.handicap));
+  const bandits = players.filter((p) => p.handicap === highestHandicap).map((p) => p.name);
 
   const moments: string[] = [];
   for (const r of results) {
