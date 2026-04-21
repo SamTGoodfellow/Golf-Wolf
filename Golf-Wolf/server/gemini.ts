@@ -1,11 +1,12 @@
 import Groq from "groq-sdk";
-import type { Player, HoleResult } from "@shared/schema";
+import type { Player, HoleResult, Game } from "@shared/schema";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function generateRoundSummary(
   players: Player[],
-  results: HoleResult[]
+  results: HoleResult[],
+  game?: Game
 ): Promise<string> {
   const sorted = [...players].sort((a, b) => b.score - a.score);
   const playerMap = new Map(players.map((p) => [p.id, p.name]));
@@ -21,16 +22,27 @@ export async function generateRoundSummary(
   for (const r of results) {
     const wolf = playerMap.get(r.wolfId) ?? "Unknown";
     const winner = (r.winnerIds ?? []).map((id) => playerMap.get(id)).join(" & ");
+    const netInfo = r.netScores
+      ? ` (net scores: ${players.map(p => `${p.name} ${r.netScores![String(p.id)] ?? '?'}`).join(', ')})`
+      : "";
+
     if (r.isBlindWolf) {
-      moments.push(`Hole ${r.holeNumber}: ${wolf} declared Blind Wolf — ${winner ? `won (${winner})` : "lost"}`);
+      moments.push(`Hole ${r.holeNumber}: ${wolf} declared Blind Wolf — ${winner ? `won (${winner})` : "lost"}${netInfo}`);
     } else if (r.isLoneWolf) {
-      moments.push(`Hole ${r.holeNumber}: ${wolf} went Lone Wolf — ${winner ? `won (${winner})` : "lost"}`);
+      moments.push(`Hole ${r.holeNumber}: ${wolf} went Lone Wolf — ${winner ? `won (${winner})` : "lost"}${netInfo}`);
     } else if (r.isDraw) {
-      moments.push(`Hole ${r.holeNumber}: draw, no points`);
+      moments.push(`Hole ${r.holeNumber}: draw, no points${netInfo}`);
+    } else if (netInfo) {
+      moments.push(`Hole ${r.holeNumber}: ${wolf} was wolf${netInfo}`);
     }
   }
 
+  const courseSection = (game?.mode === "scored" && game.courseName)
+    ? `\nCourse: ${game.courseName} (${game.selectedTee} tee)`
+    : "";
+
   const prompt = `You are a savage golf commentator with zero sympathy. Write exactly 3–4 sentences. Be specific with player names. Celebrate the winner like they're a legend — but if their margin was slim, make it clear they barely scraped it. For the player who came last: destroy them. Be genuinely ruthless — mock their decisions, question their ability, suggest they take up a different sport. If anyone went Blind Wolf or Lone Wolf, dramatise it — heroic if it worked, humiliating if it didn't. No softening, no consolation prizes.
+${courseSection}
 
 Final standings:
 ${standings}

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertPlayerSchema, games, players, holeResults } from './schema';
+import { insertPlayerSchema, games, players, holeResults, type HoleResult } from './schema';
 
 // ============================================
 // ERROR SCHEMAS
@@ -16,6 +16,37 @@ export const errorSchemas = {
     message: z.string(),
   }),
 };
+
+// ============================================
+// COURSE API TYPES
+// ============================================
+export interface CourseHole {
+  par: number;
+  yardage: number;
+}
+
+export interface CourseTee {
+  tee_name: string;
+  par_total: number;
+  total_yards: number;
+  holes: CourseHole[];
+}
+
+export interface Course {
+  id: number;
+  club_name: string;
+  course_name: string;
+  location: {
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+  tees: {
+    male?: CourseTee[];
+    female?: CourseTee[];
+  };
+}
 
 // ============================================
 // API CONTRACT
@@ -37,7 +68,7 @@ export const api = {
         200: z.object({
           game: z.custom<typeof games.$inferSelect>(),
           players: z.array(z.custom<typeof players.$inferSelect>()),
-          results: z.array(z.custom<typeof holeResults.$inferSelect>()),
+          results: z.array(z.custom<HoleResult>()),
         }),
         404: errorSchemas.notFound,
       },
@@ -80,6 +111,22 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    setCourse: {
+      method: 'POST' as const,
+      path: '/api/games/:id/course',
+      input: z.object({
+        courseId: z.number(),
+        courseName: z.string(),
+        selectedTee: z.string(),
+        coursePar: z.array(z.number()).length(18),
+        courseYardage: z.array(z.number()).length(18),
+      }),
+      responses: {
+        200: z.custom<typeof games.$inferSelect>(),
+        403: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
   },
   players: {
     create: {
@@ -111,10 +158,11 @@ export const api = {
         isLoneWolf: z.boolean(),
         isBlindWolf: z.boolean(),
         isDraw: z.boolean(),
-        winnerIds: z.array(z.number()),
+        winnerIds: z.array(z.number()).optional().default([]),
+        netScores: z.record(z.string(), z.number()).optional(),
       }),
       responses: {
-        200: z.custom<typeof holeResults.$inferSelect>(),
+        200: z.custom<HoleResult>(),
         400: errorSchemas.validation,
         404: errorSchemas.notFound,
       },
@@ -128,13 +176,24 @@ export const api = {
         isLoneWolf: z.boolean(),
         isBlindWolf: z.boolean(),
         isDraw: z.boolean(),
-        winnerIds: z.array(z.number()),
+        winnerIds: z.array(z.number()).optional().default([]),
+        netScores: z.record(z.string(), z.number()).optional(),
       }),
       responses: {
-        200: z.custom<typeof holeResults.$inferSelect>(),
+        200: z.custom<HoleResult>(),
         400: errorSchemas.validation,
         404: errorSchemas.notFound,
       },
+    },
+  },
+  courses: {
+    search: {
+      method: 'GET' as const,
+      path: '/api/courses/search',
+    },
+    get: {
+      method: 'GET' as const,
+      path: '/api/courses/:courseId',
     },
   },
 };
@@ -157,21 +216,11 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 // ============================================
 // WOLF ROTATION HELPERS
 // ============================================
-
-/** Returns the wolf's player ID for a given hole using standard rotation.
- *  Hole 1 wolf = last player (highest position). Rotates backwards from there.
- *  e.g. 4 players: hole 1 → pos 4, hole 2 → pos 1, hole 3 → pos 2, hole 4 → pos 3
- */
 export function getWolfId(playerOrder: number[], holeNumber: number): number {
   const len = playerOrder.length;
   return playerOrder[(holeNumber + len - 2) % len];
 }
 
-/** Returns the wolf's player ID, applying special rules:
- *  - 4-player games, holes 17 & 18: wolf is the player with the lowest score.
- *  - All other cases: standard rotation via getWolfId.
- *  Ties in score are broken by playerOrder position.
- */
 export function resolveWolfId(
   playerOrder: number[],
   holeNumber: number,
@@ -187,7 +236,6 @@ export function resolveWolfId(
   return getWolfId(playerOrder, holeNumber);
 }
 
-/** Returns tee-off order for a hole: all non-wolf players in sequence, wolf last */
 export function getTeeOffOrder(
   playerOrder: number[],
   holeNumber: number,
@@ -205,3 +253,4 @@ export type CreatePlayerInput = z.infer<typeof api.players.create.input>;
 export type SubmitHoleInput = z.infer<typeof api.holes.submit.input>;
 export type EditHoleInput = z.infer<typeof api.holes.edit.input>;
 export type SetOrderInput = z.infer<typeof api.games.setOrder.input>;
+export type SetCourseInput = z.infer<typeof api.games.setCourse.input>;

@@ -12,6 +12,13 @@ export interface IStorage {
   updateGameStatus(id: string, status: string): Promise<Game>;
   updateGameHole(id: string, hole: number): Promise<Game>;
   updateGamePlayerOrder(id: string, playerOrder: number[]): Promise<Game>;
+  updateGameCourse(id: string, data: {
+    courseId: number;
+    courseName: string;
+    selectedTee: string;
+    coursePar: number[];
+    courseYardage: number[];
+  }): Promise<Game>;
 
   // Players
   createPlayer(player: InsertPlayer): Promise<Player>;
@@ -19,6 +26,7 @@ export interface IStorage {
   getPlayer(id: number): Promise<Player | undefined>;
   deletePlayer(id: number): Promise<void>;
   updatePlayerScore(id: number, newScore: number): Promise<Player>;
+  resetPlayerScores(gameId: string): Promise<void>;
 
   // Hole Results
   createHoleResult(result: InsertHoleResult): Promise<HoleResult>;
@@ -27,7 +35,6 @@ export interface IStorage {
   getHoleResult(gameId: string, holeNumber: number): Promise<HoleResult | undefined>;
   deleteHoleResult(gameId: string, holeNumber: number): Promise<void>;
   deleteAllHoleResults(gameId: string): Promise<void>;
-  resetPlayerScores(gameId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -45,7 +52,6 @@ export class MemStorage implements IStorage {
     this.holeResults = new Map();
   }
 
-  // Game
   async createGame(): Promise<{ game: Game; adminToken: string }> {
     const id = randomUUID();
     const adminToken = randomUUID();
@@ -54,6 +60,12 @@ export class MemStorage implements IStorage {
       status: "setup",
       currentHole: 1,
       playerOrder: null,
+      mode: "simple",
+      courseId: null,
+      courseName: null,
+      selectedTee: null,
+      coursePar: null,
+      courseYardage: null,
     };
     this.games.set(id, game);
     this.gameTokens.set(id, adminToken);
@@ -92,7 +104,20 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  // Players
+  async updateGameCourse(id: string, data: {
+    courseId: number;
+    courseName: string;
+    selectedTee: string;
+    coursePar: number[];
+    courseYardage: number[];
+  }): Promise<Game> {
+    const game = this.games.get(id);
+    if (!game) throw new Error("Game not found");
+    const updated = { ...game, mode: "scored", ...data };
+    this.games.set(id, updated);
+    return updated;
+  }
+
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
     const id = this.playerIdCounter++;
     const player: Player = {
@@ -100,7 +125,7 @@ export class MemStorage implements IStorage {
       score: 0,
       name: insertPlayer.name,
       gameId: insertPlayer.gameId,
-      handicap: insertPlayer.handicap ?? 0
+      handicap: insertPlayer.handicap ?? 0,
     };
     this.players.set(id, player);
     return player;
@@ -126,7 +151,13 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  // Hole Results
+  async resetPlayerScores(gameId: string): Promise<void> {
+    const players = await this.getPlayers(gameId);
+    for (const player of players) {
+      this.players.set(player.id, { ...player, score: 0 });
+    }
+  }
+
   async createHoleResult(insertResult: InsertHoleResult): Promise<HoleResult> {
     const id = this.resultIdCounter++;
     const result: HoleResult = {
@@ -139,6 +170,7 @@ export class MemStorage implements IStorage {
       isBlindWolf: insertResult.isBlindWolf ?? false,
       isDraw: insertResult.isDraw ?? false,
       winnerIds: insertResult.winnerIds ?? null,
+      netScores: insertResult.netScores ?? null,
     };
     this.holeResults.set(id, result);
     return result;
@@ -171,13 +203,6 @@ export class MemStorage implements IStorage {
       .filter(([, r]) => r.gameId === gameId)
       .map(([id]) => id);
     for (const id of toDelete) this.holeResults.delete(id);
-  }
-
-  async resetPlayerScores(gameId: string): Promise<void> {
-    const players = await this.getPlayers(gameId);
-    for (const player of players) {
-      this.players.set(player.id, { ...player, score: 0 });
-    }
   }
 }
 

@@ -110,6 +110,7 @@ export default function Play() {
                 <HoleHistory
                   results={results}
                   players={players}
+                  game={game}
                   onEdit={(result) => {
                     setEditingResult(result);
                     setActiveTab("play");

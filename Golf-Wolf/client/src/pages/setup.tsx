@@ -3,9 +3,12 @@ import { useRoute, useLocation } from "wouter";
 import { useGame, useCreatePlayer, useStartGame, useDeletePlayer, useSetPlayerOrder } from "@/hooks/use-game";
 import { PlayerCard } from "@/components/player-card";
 import { AddPlayerDialog } from "@/components/add-player-dialog";
+import { CourseSearch } from "@/components/course-search";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, ListOrdered } from "lucide-react";
+import { ArrowRight, Users, ListOrdered, LayoutGrid } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+
+type SetupStep = "mode" | "course" | "players";
 
 export default function Setup() {
   const [match, params] = useRoute("/game/:id/setup");
@@ -16,6 +19,13 @@ export default function Setup() {
   const deletePlayer = useDeletePlayer();
   const setPlayerOrder = useSetPlayerOrder();
 
+  const [step, setStep] = useState<SetupStep>("mode");
+
+  // Once we know the game's mode, skip the mode-select step if course already set
+  useEffect(() => {
+    if (data?.game.mode === "scored") setStep("players");
+  }, [data?.game.mode]);
+
   // Local ordered list of player IDs for the tee-off order step
   const [orderedPlayerIds, setOrderedPlayerIds] = useState<number[]>([]);
 
@@ -24,7 +34,6 @@ export default function Setup() {
     if (!data) return;
     const currentIds = data.players.map(p => p.id);
     setOrderedPlayerIds(prev => {
-      // Keep existing order, add new players at end, remove deleted ones
       const kept = prev.filter(id => currentIds.includes(id));
       const added = currentIds.filter(id => !prev.includes(id));
       return [...kept, ...added];
@@ -41,7 +50,7 @@ export default function Setup() {
   if (isLoading) return <div className="min-h-screen flex items-center justify-center text-primary">Loading setup...</div>;
   if (error || !data) return <div className="min-h-screen flex items-center justify-center text-destructive">Error loading game</div>;
 
-  const { players } = data;
+  const { game, players } = data;
   const canStart = players.length >= 3;
   const orderedPlayers = orderedPlayerIds.map(id => players.find(p => p.id === id)).filter(Boolean) as typeof players;
 
@@ -64,17 +73,112 @@ export default function Setup() {
 
   const handleStartGame = async () => {
     if (!gameId) return;
-    // Save order first, then start
     await setPlayerOrder.mutateAsync({ gameId, data: { playerOrder: orderedPlayerIds } });
     startGame.mutate(gameId, {
       onSuccess: () => setLocation(`/game/${gameId}`),
     });
   };
 
+  // ── Step 1: Mode selection ──────────────────────────────────────────────────
+  if (step === "mode") {
+    return (
+      <div className="min-h-screen">
+        <PageHeader confirmLeave />
+        <div className="px-4 pt-8 max-w-lg mx-auto space-y-6">
+          <div className="text-center space-y-1">
+            <h1 className="font-display font-bold text-4xl text-foreground">Game Mode</h1>
+            <p className="text-muted-foreground text-lg">How are you playing today?</p>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => setStep("players")}
+              className="w-full bg-white border-2 border-border rounded-2xl p-5 text-left hover:border-primary/50 hover:bg-muted/30 transition-all group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <LayoutGrid className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-xl text-foreground">Simple</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Pick who won each hole manually. No course data needed.
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setStep("course")}
+              className="w-full bg-white border-2 border-border rounded-2xl p-5 text-left hover:border-green-500/50 hover:bg-green-50/30 transition-all group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0 group-hover:bg-green-200 transition-colors">
+                  <span className="text-2xl">⛳</span>
+                </div>
+                <div>
+                  <p className="font-display font-bold text-xl text-foreground">Scored</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Enter net scores per hole. App calculates winners automatically from handicap-adjusted scores.
+                  </p>
+                  <span className="inline-block mt-2 text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                    Course data included
+                  </span>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Step 2: Course search (scored mode) ─────────────────────────────────────
+  if (step === "course") {
+    return (
+      <div className="min-h-screen">
+        <PageHeader confirmLeave />
+        <div className="px-4 pt-8 max-w-lg mx-auto space-y-6">
+          <div className="text-center space-y-1">
+            <h1 className="font-display font-bold text-4xl text-foreground">Select Course</h1>
+            <p className="text-muted-foreground text-lg">Find your course and tee.</p>
+          </div>
+
+          <CourseSearch gameId={gameId!} onComplete={() => setStep("players")} />
+
+          <button
+            onClick={() => setStep("mode")}
+            className="text-sm text-muted-foreground underline w-full text-center pb-8"
+          >
+            Back to mode selection
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Step 3: Players + tee-off order ─────────────────────────────────────────
   return (
     <div className="min-h-screen">
       <PageHeader confirmLeave />
       <div className="pb-32 px-4 pt-8 max-w-lg mx-auto space-y-8">
+
+        {/* Course badge (scored mode) */}
+        {game.mode === "scored" && game.courseName && (
+          <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+            <span className="text-2xl">⛳</span>
+            <div className="min-w-0">
+              <p className="font-bold text-sm text-foreground truncate">{game.courseName}</p>
+              <p className="text-xs text-muted-foreground">{game.selectedTee} tee · Scored mode</p>
+            </div>
+            <button
+              onClick={() => setStep("course")}
+              className="text-xs text-green-700 underline flex-shrink-0 font-semibold"
+            >
+              Change
+            </button>
+          </div>
+        )}
 
         {/* Players */}
         <div className="space-y-4">

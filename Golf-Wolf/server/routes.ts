@@ -8,6 +8,9 @@ import type { HoleResult } from "@shared/schema";
 import { generateRoundSummary } from "./gemini";
 import { trackGameStarted, trackGameEnded } from "./analytics";
 
+const GOLF_API_KEY = process.env.GOLF_COURSE_API_KEY ?? "";
+const GOLF_API_BASE = "https://api.golfcourseapi.com/v1";
+
 // ============================================
 // RATE LIMITERS
 // ============================================
@@ -45,6 +48,30 @@ async function requireAdminToken(req: Request, res: Response, gameId: string): P
 }
 
 // ============================================
+// SCORED MODE: calculate winners from net scores
+// ============================================
+function calculateWinnersFromNetScores(
+  netScores: Record<string, number>,
+  wolfId: number,
+  partnerId: number | null,
+  isLoneWolf: boolean,
+  isBlindWolf: boolean,
+  allPlayerIds: number[]
+): { winnerIds: number[]; isDraw: boolean } {
+  const wolfSideIds = (!isLoneWolf && !isBlindWolf && partnerId)
+    ? [wolfId, partnerId]
+    : [wolfId];
+  const hunterIds = allPlayerIds.filter(id => !wolfSideIds.includes(id));
+
+  const bestWolf = Math.min(...wolfSideIds.map(id => netScores[String(id)] ?? Infinity));
+  const bestHunter = Math.min(...hunterIds.map(id => netScores[String(id)] ?? Infinity));
+
+  if (bestWolf < bestHunter) return { winnerIds: wolfSideIds, isDraw: false };
+  if (bestHunter < bestWolf) return { winnerIds: hunterIds, isDraw: false };
+  return { winnerIds: [], isDraw: true };
+}
+
+// ============================================
 // SCORING CONSTANTS
 // ============================================
 const SCORING_4P = {
@@ -69,8 +96,6 @@ function getScoringConstants(playerCount: number) {
   return playerCount === 3 ? SCORING_3P : SCORING_4P;
 }
 
-// Recalculate all player scores from scratch using every hole result.
-// Called after any submit or edit to keep scores consistent.
 async function recalculateAllScores(gameId: string): Promise<void> {
   const results = await storage.getHoleResults(gameId);
   const players = await storage.getPlayers(gameId);
@@ -135,9 +160,8 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   // ============================================
-  // SEO ROUTES
+  // SEO
   // ============================================
-
   app.get("/robots.txt", (_req, res) => {
     const appUrl = process.env.APP_URL ?? "";
     res.type("text/plain").send(
@@ -150,22 +174,58 @@ export async function registerRoutes(
     res.type("application/xml").send(
       `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>${appUrl}/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
+  <url><loc>${appUrl}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
 </urlset>`
     );
   });
 
-  // Create Game — rate limited
+  // ============================================
+  // COURSE PROXY ROUTES (no auth needed)
+  // ============================================
+  app.get(api.courses.search.path, async (req, res) => {
+    const q = String(req.query.q ?? "").trim();
+    if (!q || q.length < 2) return res.status(400).json({ message: "Search query too short" });
+    if (!GOLF_API_KEY) return res.status(503).json({ message: "Golf Course API not configured" });
+
+    try {
+      const upstream = await fetch(
+        `${GOLF_API_BASE}/search/?search_query=${encodeURIComponent(q)}`,
+        { headers: { Authorization: `Key ${GOLF_API_KEY}` } }
+      );
+      const data = await upstream.json();
+      res.json(data);
+    } catch (err) {
+      console.error("[courses] search error:", err);
+      res.status(502).json({ message: "Failed to reach Golf Course API" });
+    }
+  });
+
+  app.get(api.courses.get.path, async (req, res) => {
+    const courseId = String(req.params.courseId);
+    if (!GOLF_API_KEY) return res.status(503).json({ message: "Golf Course API not configured" });
+
+    try {
+      const upstream = await fetch(
+        `${GOLF_API_BASE}/courses/${courseId}`,
+        { headers: { Authorization: `Key ${GOLF_API_KEY}` } }
+      );
+      const data = await upstream.json();
+      res.json(data);
+    } catch (err) {
+      console.error("[courses] fetch error:", err);
+      res.status(502).json({ message: "Failed to reach Golf Course API" });
+    }
+  });
+
+  // ============================================
+  // GAME ROUTES
+  // ============================================
+
   app.post(api.games.create.path, createGameLimiter, async (_req, res) => {
     const { game, adminToken } = await storage.createGame();
     res.status(201).json({ ...game, adminToken });
   });
 
-  // Get Game State — public (for sharing)
   app.get(api.games.get.path, async (req, res) => {
     const id = String(req.params.id);
     const game = await storage.getGame(id);
@@ -175,7 +235,23 @@ export async function registerRoutes(
     res.json({ game, players, results });
   });
 
-  // Generate Round Summary — rate limited, requires admin token
+  // Set Course (scored mode only)
+  app.post(api.games.setCourse.path, async (req, res) => {
+    try {
+      const id = String(req.params.id);
+      if (!await requireAdminToken(req, res, id)) return;
+      const input = api.games.setCourse.input.parse(req.body);
+      const game = await storage.getGame(id);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+      const updated = await storage.updateGameCourse(id, input);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      throw err;
+    }
+  });
+
+  // Generate Round Summary
   app.post(api.games.summary.path, summaryLimiter, async (req, res) => {
     const id = String(req.params.id);
     const game = await storage.getGame(id);
@@ -184,15 +260,15 @@ export async function registerRoutes(
     const players = await storage.getPlayers(id);
     const results = await storage.getHoleResults(id);
     try {
-      const summary = await generateRoundSummary(players, results);
+      const summary = await generateRoundSummary(players, results, game);
       res.json({ summary });
     } catch (err) {
-      console.error("Gemini error:", err);
+      console.error("Summary error:", err);
       res.status(500).json({ message: "Failed to generate summary" });
     }
   });
 
-  // Set Player Order — requires admin token
+  // Set Player Order
   app.post(api.games.setOrder.path, async (req, res) => {
     try {
       const id = String(req.params.id);
@@ -203,40 +279,33 @@ export async function registerRoutes(
       const updated = await storage.updateGamePlayerOrder(id, input.playerOrder);
       res.json(updated);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;
     }
   });
 
-  // Start Game — requires admin token
+  // Start Game
   app.post(api.games.start.path, async (req, res) => {
     const id = String(req.params.id);
     if (!await requireAdminToken(req, res, id)) return;
     const game = await storage.getGame(id);
     if (!game) return res.status(404).json({ message: "Game not found" });
-
     const players = await storage.getPlayers(id);
-    if (players.length < 3) {
-      return res.status(400).json({ message: "Need at least 3 players" });
-    }
+    if (players.length < 3) return res.status(400).json({ message: "Need at least 3 players" });
     if (!game.playerOrder || game.playerOrder.length !== players.length) {
       return res.status(400).json({ message: "Set the tee-off order before starting" });
     }
-
     const updated = await storage.updateGameStatus(id, "playing");
     trackGameStarted(id, players.length);
     res.json(updated);
   });
 
-  // Restart Game — requires admin token
+  // Restart Game
   app.post(api.games.restart.path, async (req, res) => {
     const id = String(req.params.id);
     if (!await requireAdminToken(req, res, id)) return;
     const game = await storage.getGame(id);
     if (!game) return res.status(404).json({ message: "Game not found" });
-
     await storage.updateGameStatus(id, "setup");
     await storage.updateGameHole(id, 1);
     await storage.updateGamePlayerOrder(id, []);
@@ -245,7 +314,10 @@ export async function registerRoutes(
     res.json(await storage.getGame(id));
   });
 
-  // Add Player — requires admin token
+  // ============================================
+  // PLAYER ROUTES
+  // ============================================
+
   app.post(api.players.create.path, async (req, res) => {
     try {
       const gameId = String(req.params.gameId);
@@ -254,14 +326,11 @@ export async function registerRoutes(
       const player = await storage.createPlayer({ ...input, gameId });
       res.status(201).json(player);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;
     }
   });
 
-  // Delete Player — requires admin token (looked up via player's gameId)
   app.delete(api.players.delete.path, async (req, res) => {
     const id = Number(req.params.id);
     const player = await storage.getPlayer(id);
@@ -271,35 +340,63 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  // Submit Hole Result — requires admin token
+  // ============================================
+  // HOLE ROUTES
+  // ============================================
+
   app.post(api.holes.submit.path, async (req, res) => {
     try {
       const gameId = String(req.params.gameId);
       if (!await requireAdminToken(req, res, gameId)) return;
       const input = api.holes.submit.input.parse(req.body);
 
-      if (!input.isDraw) {
-        const players = await storage.getPlayers(gameId);
-        const wolfSideIds = (!input.isLoneWolf && !input.isBlindWolf && input.partnerId)
-          ? [input.wolfId, input.partnerId]
-          : [input.wolfId];
-        const hunterIds = players.map(p => p.id).filter(id => !wolfSideIds.includes(id));
+      const players = await storage.getPlayers(gameId);
+      const allPlayerIds = players.map(p => p.id);
 
-        if (wolfSideIds.length > 1) {
-          const wolfWins = input.winnerIds.includes(input.wolfId);
-          const partnerWins = input.winnerIds.includes(input.partnerId!);
-          if (wolfWins !== partnerWins) {
-            return res.status(400).json({ message: "Wolf and partner must win or lose together" });
+      let { isDraw } = input;
+      let winnerIds = input.winnerIds ?? [];
+
+      if (input.netScores && Object.keys(input.netScores).length > 0) {
+        // Scored mode: auto-calculate winners from net scores
+        const calc = calculateWinnersFromNetScores(
+          input.netScores,
+          input.wolfId,
+          input.partnerId,
+          input.isLoneWolf,
+          input.isBlindWolf,
+          allPlayerIds
+        );
+        winnerIds = calc.winnerIds;
+        isDraw = calc.isDraw;
+      } else {
+        // Simple mode: validate manually submitted winners
+        if (!isDraw) {
+          const wolfSideIds = (!input.isLoneWolf && !input.isBlindWolf && input.partnerId)
+            ? [input.wolfId, input.partnerId]
+            : [input.wolfId];
+          const hunterIds = allPlayerIds.filter(id => !wolfSideIds.includes(id));
+
+          if (wolfSideIds.length > 1) {
+            const wolfWins = winnerIds.includes(input.wolfId);
+            const partnerWins = winnerIds.includes(input.partnerId!);
+            if (wolfWins !== partnerWins) {
+              return res.status(400).json({ message: "Wolf and partner must win or lose together" });
+            }
           }
-        }
-
-        const huntersWinning = hunterIds.filter(id => input.winnerIds.includes(id));
-        if (huntersWinning.length > 0 && huntersWinning.length !== hunterIds.length) {
-          return res.status(400).json({ message: "Hunters win or lose as a team" });
+          const huntersWinning = hunterIds.filter(id => winnerIds.includes(id));
+          if (huntersWinning.length > 0 && huntersWinning.length !== hunterIds.length) {
+            return res.status(400).json({ message: "Hunters win or lose as a team" });
+          }
         }
       }
 
-      const result = await storage.createHoleResult({ ...input, gameId });
+      const result = await storage.createHoleResult({
+        ...input,
+        gameId,
+        winnerIds,
+        isDraw,
+        netScores: input.netScores ?? null,
+      });
       await recalculateAllScores(gameId);
 
       const game = await storage.getGame(gameId);
@@ -314,14 +411,11 @@ export async function registerRoutes(
 
       res.json(result);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;
     }
   });
 
-  // Edit Hole Result — requires admin token
   app.put(api.holes.edit.path, async (req, res) => {
     try {
       const gameId = String(req.params.gameId);
@@ -329,35 +423,56 @@ export async function registerRoutes(
       const holeNumber = Number(req.params.holeNumber);
       const input = api.holes.edit.input.parse(req.body);
 
-      if (!input.isDraw) {
-        const players = await storage.getPlayers(gameId);
-        const wolfSideIds = (!input.isLoneWolf && !input.isBlindWolf && input.partnerId)
-          ? [input.wolfId, input.partnerId]
-          : [input.wolfId];
-        const hunterIds = players.map(p => p.id).filter(id => !wolfSideIds.includes(id));
+      const players = await storage.getPlayers(gameId);
+      const allPlayerIds = players.map(p => p.id);
 
-        if (wolfSideIds.length > 1) {
-          const wolfWins = input.winnerIds.includes(input.wolfId);
-          const partnerWins = input.winnerIds.includes(input.partnerId!);
-          if (wolfWins !== partnerWins) {
-            return res.status(400).json({ message: "Wolf and partner must win or lose together" });
+      let { isDraw } = input;
+      let winnerIds = input.winnerIds ?? [];
+
+      if (input.netScores && Object.keys(input.netScores).length > 0) {
+        const calc = calculateWinnersFromNetScores(
+          input.netScores,
+          input.wolfId,
+          input.partnerId,
+          input.isLoneWolf,
+          input.isBlindWolf,
+          allPlayerIds
+        );
+        winnerIds = calc.winnerIds;
+        isDraw = calc.isDraw;
+      } else {
+        if (!isDraw) {
+          const wolfSideIds = (!input.isLoneWolf && !input.isBlindWolf && input.partnerId)
+            ? [input.wolfId, input.partnerId]
+            : [input.wolfId];
+          const hunterIds = allPlayerIds.filter(id => !wolfSideIds.includes(id));
+
+          if (wolfSideIds.length > 1) {
+            const wolfWins = winnerIds.includes(input.wolfId);
+            const partnerWins = winnerIds.includes(input.partnerId!);
+            if (wolfWins !== partnerWins) {
+              return res.status(400).json({ message: "Wolf and partner must win or lose together" });
+            }
+          }
+          const huntersWinning = hunterIds.filter(id => winnerIds.includes(id));
+          if (huntersWinning.length > 0 && huntersWinning.length !== hunterIds.length) {
+            return res.status(400).json({ message: "Hunters win or lose as a team" });
           }
         }
-
-        const huntersWinning = hunterIds.filter(id => input.winnerIds.includes(id));
-        if (huntersWinning.length > 0 && huntersWinning.length !== hunterIds.length) {
-          return res.status(400).json({ message: "Hunters win or lose as a team" });
-        }
       }
 
-      const result = await storage.upsertHoleResult({ ...input, gameId, holeNumber });
+      const result = await storage.upsertHoleResult({
+        ...input,
+        gameId,
+        holeNumber,
+        winnerIds,
+        isDraw,
+        netScores: input.netScores ?? null,
+      });
       await recalculateAllScores(gameId);
-
       res.json(result);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       throw err;
     }
   });

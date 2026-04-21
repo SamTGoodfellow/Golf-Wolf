@@ -1,13 +1,19 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // === TABLE DEFINITIONS ===
 export const games = pgTable("games", {
   id: text("id").primaryKey(),
-  status: text("status").notNull().default("setup"), // 'setup', 'playing', 'complete'
+  status: text("status").notNull().default("setup"),       // 'setup' | 'playing' | 'complete'
   currentHole: integer("current_hole").notNull().default(1),
-  playerOrder: integer("player_order").array(), // Ordered player IDs; determines wolf rotation
+  playerOrder: integer("player_order").array(),
+  mode: text("mode").notNull().default("simple"),           // 'simple' | 'scored'
+  courseId: integer("course_id"),
+  courseName: text("course_name"),
+  selectedTee: text("selected_tee"),
+  coursePar: integer("course_par").array(),                 // par per hole [1..18]
+  courseYardage: integer("course_yardage").array(),         // yardage per hole [1..18]
 });
 
 export const players = pgTable("players", {
@@ -15,7 +21,7 @@ export const players = pgTable("players", {
   gameId: text("game_id").notNull(),
   name: text("name").notNull(),
   handicap: integer("handicap").notNull().default(0),
-  score: integer("score").notNull().default(0), // Cached total score
+  score: integer("score").notNull().default(0),
 });
 
 export const holeResults = pgTable("hole_results", {
@@ -23,11 +29,12 @@ export const holeResults = pgTable("hole_results", {
   gameId: text("game_id").notNull(),
   holeNumber: integer("hole_number").notNull(),
   wolfId: integer("wolf_id").notNull(),
-  partnerId: integer("partner_id"),         // NULL if lone wolf / blind wolf
+  partnerId: integer("partner_id"),
   isLoneWolf: boolean("is_lone_wolf").notNull().default(false),
-  isBlindWolf: boolean("is_blind_wolf").notNull().default(false), // Declared before any tee shots
-  isDraw: boolean("is_draw").notNull().default(false),            // No points awarded
-  winnerIds: integer("winner_ids").array(),  // Empty on draw
+  isBlindWolf: boolean("is_blind_wolf").notNull().default(false),
+  isDraw: boolean("is_draw").notNull().default(false),
+  winnerIds: integer("winner_ids").array(),
+  netScores: json("net_scores"),                            // Record<string, number> | null
 });
 
 export const gameAnalytics = pgTable("game_analytics", {
@@ -41,20 +48,25 @@ export const gameAnalytics = pgTable("game_analytics", {
 // === SCHEMAS ===
 export const insertGameSchema = createInsertSchema(games).omit({ id: true, currentHole: true });
 export const insertPlayerSchema = createInsertSchema(players).omit({ id: true, score: true });
-export const insertHoleResultSchema = createInsertSchema(holeResults).omit({ id: true });
+export const insertHoleResultSchema = createInsertSchema(holeResults)
+  .omit({ id: true })
+  .extend({ netScores: z.record(z.string(), z.number()).nullable().optional() });
 
 // === EXPLICIT TYPES ===
 export type Game = typeof games.$inferSelect;
 export type Player = typeof players.$inferSelect;
-export type HoleResult = typeof holeResults.$inferSelect;
+
+// Override netScores from `unknown` to a proper type
+type HoleResultRaw = typeof holeResults.$inferSelect;
+export type HoleResult = Omit<HoleResultRaw, "netScores"> & {
+  netScores: Record<string, number> | null;
+};
 
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type InsertHoleResult = z.infer<typeof insertHoleResultSchema>;
 
-// Request types
 export type CreatePlayerRequest = InsertPlayer;
 
-// Response types
 export type GameStateResponse = {
   game: Game;
   players: Player[];

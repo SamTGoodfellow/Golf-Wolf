@@ -9,9 +9,7 @@ import confetti from "canvas-confetti";
 interface HoleScorerProps {
   game: Game;
   players: Player[];
-  /** Called when user wants to exit edit mode */
   onCancelEdit?: () => void;
-  /** If set, we are editing an existing hole result */
   editingResult?: HoleResult;
 }
 
@@ -22,24 +20,34 @@ function buildInitialState(result: HoleResult | undefined): {
   partnerId: number | null;
   winnerIds: number[];
   isDraw: boolean;
+  netScores: Record<number, string>;
 } {
-  if (!result) return { decision: null, partnerId: null, winnerIds: [], isDraw: false };
+  if (!result) return { decision: null, partnerId: null, winnerIds: [], isDraw: false, netScores: {} };
 
   let decision: WolfDecision | null = null;
   if (result.isBlindWolf) decision = "blind";
   else if (result.isLoneWolf) decision = "lone";
   else if (result.partnerId) decision = "partner";
 
+  const netScores: Record<number, string> = {};
+  if (result.netScores) {
+    for (const [k, v] of Object.entries(result.netScores)) {
+      netScores[Number(k)] = String(v);
+    }
+  }
+
   return {
     decision,
     partnerId: result.partnerId ?? null,
     winnerIds: result.winnerIds ?? [],
     isDraw: result.isDraw ?? false,
+    netScores,
   };
 }
 
 export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleScorerProps) {
   const isEditing = !!editingResult;
+  const isScored = game.mode === "scored";
   const holeNumber = isEditing ? editingResult!.holeNumber : game.currentHole;
   const playerOrder = game.playerOrder ?? players.map(p => p.id);
 
@@ -51,19 +59,17 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
   const [partnerId, setPartnerId] = useState<number | null>(initial.partnerId);
   const [winnerIds, setWinnerIds] = useState<number[]>(initial.winnerIds);
   const [isDraw, setIsDraw] = useState(initial.isDraw);
+  const [netScores, setNetScores] = useState<Record<number, string>>(initial.netScores);
 
   const submitHole = useSubmitHole();
   const editHole = useEditHole();
 
   const wolf = players.find(p => p.id === wolfId);
-
   const is3Player = players.length === 3;
   const blindWolfWin = is3Player ? 5 : 6;
   const loneWolfLoss = is3Player ? 2 : 1;
 
-  // Wolf side = wolf alone (lone/blind) or wolf + partner
   const wolfSideIds = decision === "partner" && partnerId ? [wolfId, partnerId] : [wolfId];
-  // Hunters = everyone else — always win/lose as a team
   const hunterIds = players.map(p => p.id).filter(id => !wolfSideIds.includes(id));
 
   const wolfSideWon = winnerIds.length > 0 && wolfSideIds.every(id => winnerIds.includes(id)) && winnerIds.length === wolfSideIds.length;
@@ -77,27 +83,29 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
     setPartnerId(null);
     setWinnerIds([]);
     setIsDraw(false);
+    setNetScores({});
   };
 
-  const handleDraw = () => {
-    setIsDraw(true);
-    setWinnerIds([]);
-  };
+  const handleDraw = () => { setIsDraw(true); setWinnerIds([]); };
+  const handleUndoDraw = () => setIsDraw(false);
 
-  const handleUndoDraw = () => {
-    setIsDraw(false);
-  };
+  const decisionReady = decision !== null && (decision !== "partner" || partnerId !== null);
 
-  const isValid = isDraw
-    ? decision !== null && (decision !== "partner" || partnerId !== null)
-    : decision !== null &&
-      (decision !== "partner" || partnerId !== null) &&
-      winnerIds.length > 0;
+  // For scored mode: valid when all players have a net score entered
+  const allNetScoresEntered = isScored && decisionReady
+    ? players.every(p => netScores[p.id] !== undefined && netScores[p.id] !== "")
+    : false;
+
+  const isValid = isScored
+    ? decisionReady && allNetScoresEntered
+    : isDraw
+      ? decisionReady
+      : decisionReady && winnerIds.length > 0;
 
   const handleSubmit = () => {
     if (!isValid) return;
 
-    const payload = {
+    const basePayload = {
       holeNumber,
       wolfId,
       partnerId: decision === "partner" ? partnerId : null,
@@ -107,20 +115,16 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
       winnerIds,
     };
 
+    const payload = isScored
+      ? { ...basePayload, netScores: Object.fromEntries(Object.entries(netScores).map(([k, v]) => [k, Number(v)])) }
+      : basePayload;
+
     if (!isDraw) {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#22c55e', '#a3e635', '#fcd34d']
-      });
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#22c55e', '#a3e635', '#fcd34d'] });
     }
 
     if (isEditing) {
-      editHole.mutate(
-        { gameId: game.id, holeNumber, data: payload },
-        { onSuccess: () => onCancelEdit?.() }
-      );
+      editHole.mutate({ gameId: game.id, holeNumber, data: payload }, { onSuccess: () => onCancelEdit?.() });
     } else {
       submitHole.mutate(
         { gameId: game.id, data: payload },
@@ -130,6 +134,7 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
             setPartnerId(null);
             setWinnerIds([]);
             setIsDraw(false);
+            setNetScores({});
           }
         }
       );
@@ -138,11 +143,9 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
 
   const isPending = submitHole.isPending || editHole.isPending;
 
-  const getPlayerRole = (id: number) => {
-    if (id === wolfId) return decision === "blind" ? "Blind Wolf 🐺" : "The Wolf 🐺";
-    if (decision === "partner" && id === partnerId) return "Partner 🤝";
-    return "Hunter";
-  };
+  // Course data for this hole
+  const holePar = isScored && game.coursePar ? game.coursePar[holeNumber - 1] : null;
+  const holeYards = isScored && game.courseYardage ? game.courseYardage[holeNumber - 1] : null;
 
   return (
     <div className="space-y-6">
@@ -168,6 +171,14 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
               {holeNumber}
               <span className="text-xl text-muted-foreground/40 font-bold ml-1.5">/ 18</span>
             </div>
+            {holePar !== null && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs font-semibold text-muted-foreground">Par {holePar}</span>
+                {holeYards !== null && (
+                  <span className="text-xs text-muted-foreground/60">{holeYards} yds</span>
+                )}
+              </div>
+            )}
           </div>
           <div className="text-right">
             <p className="text-xs font-bold text-muted-foreground tracking-widest uppercase mb-1">Wolf</p>
@@ -191,9 +202,7 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
               return (
                 <div key={playerId} className="flex items-center gap-1.5">
                   <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold ${
-                    isWolf
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'bg-muted text-foreground'
+                    isWolf ? 'bg-primary text-white shadow-sm' : 'bg-muted text-foreground'
                   }`}>
                     <span className="opacity-60 text-xs">{idx + 1}.</span>
                     {player?.name}
@@ -217,7 +226,6 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
         </div>
 
         <div className="grid grid-cols-1 gap-2">
-          {/* Blind Wolf — most exciting, top */}
           <button
             onClick={() => handleDecision("blind")}
             className={`w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between
@@ -234,7 +242,6 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
             {decision === "blind" && <Check className="w-5 h-5 flex-shrink-0" />}
           </button>
 
-          {/* Lone Wolf */}
           <button
             onClick={() => handleDecision("lone")}
             className={`w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between
@@ -251,7 +258,6 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
             {decision === "lone" && <Check className="w-5 h-5 flex-shrink-0" />}
           </button>
 
-          {/* Pick partner */}
           <button
             onClick={() => handleDecision("partner")}
             className={`w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between
@@ -301,9 +307,55 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
         )}
       </AnimatePresence>
 
-      {/* Who won / Draw */}
+      {/* Scored mode: net score inputs */}
       <AnimatePresence>
-        {decision !== null && (decision !== "partner" || partnerId !== null) && (
+        {isScored && decisionReady && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-3"
+          >
+            <div className="flex items-center gap-2 px-1">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white text-xs font-bold">
+                {decision === "partner" ? "3" : "2"}
+              </div>
+              <h3 className="font-display font-bold text-xl">Enter net scores</h3>
+            </div>
+            <p className="text-xs text-muted-foreground px-1">
+              Enter each player's net score for this hole. The app will determine the winner automatically.
+              {holePar !== null && ` Par ${holePar}.`}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {players.map(player => (
+                <div key={player.id} className="bg-white border border-border rounded-xl p-3">
+                  <p className="text-xs font-semibold text-muted-foreground truncate mb-2">{player.name}</p>
+                  {player.id === wolfId && (
+                    <p className="text-xs text-primary font-medium mb-1">🐺 Wolf</p>
+                  )}
+                  {player.id === partnerId && decision === "partner" && (
+                    <p className="text-xs text-green-600 font-medium mb-1">🤝 Partner</p>
+                  )}
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={20}
+                    value={netScores[player.id] ?? ""}
+                    onChange={e => setNetScores(prev => ({ ...prev, [player.id]: e.target.value }))}
+                    placeholder={holePar !== null ? String(holePar) : "—"}
+                    className="w-full text-center text-2xl font-display font-bold border-b-2 border-border focus:border-primary outline-none bg-transparent py-1 text-foreground"
+                  />
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Simple mode: who won / draw */}
+      <AnimatePresence>
+        {!isScored && decisionReady && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -338,7 +390,6 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
 
             {!isDraw && (
               <div className="grid grid-cols-2 gap-3">
-                {/* Wolf side */}
                 <button
                   onClick={selectWolfSideWins}
                   className={`rounded-2xl border-2 transition-all duration-200 overflow-hidden text-left
@@ -372,7 +423,6 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
                   )}
                 </button>
 
-                {/* Hunters — always a team */}
                 <button
                   onClick={selectHuntersWin}
                   className={`rounded-2xl border-2 transition-all duration-200 overflow-hidden text-left
@@ -441,7 +491,9 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
             <AlertCircle className="w-4 h-4" />
             {decision === "partner" && !partnerId
               ? "Pick a partner first"
-              : "Select who won the hole"}
+              : isScored
+                ? "Enter net scores for all players"
+                : "Select who won the hole"}
           </p>
         )}
       </div>
