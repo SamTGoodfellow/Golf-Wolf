@@ -4,7 +4,7 @@ import { z } from "zod";
 
 // === TABLE DEFINITIONS ===
 export const games = pgTable("games", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   status: text("status").notNull().default("setup"), // 'setup', 'playing', 'complete'
   currentHole: integer("current_hole").notNull().default(1),
   playerOrder: integer("player_order").array(), // Ordered player IDs; determines wolf rotation
@@ -12,7 +12,7 @@ export const games = pgTable("games", {
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
-  gameId: integer("game_id").notNull(),
+  gameId: text("game_id").notNull(),
   name: text("name").notNull(),
   handicap: integer("handicap").notNull().default(0),
   score: integer("score").notNull().default(0), // Cached total score
@@ -20,7 +20,7 @@ export const players = pgTable("players", {
 
 export const holeResults = pgTable("hole_results", {
   id: serial("id").primaryKey(),
-  gameId: integer("game_id").notNull(),
+  gameId: text("game_id").notNull(),
   holeNumber: integer("hole_number").notNull(),
   wolfId: integer("wolf_id").notNull(),
   partnerId: integer("partner_id"),         // NULL if lone wolf / blind wolf

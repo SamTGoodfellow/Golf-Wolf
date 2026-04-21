@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useCreatePlayer } from "@/hooks/use-game";
 
 interface AddPlayerDialogProps {
-  gameId: number;
+  gameId: string;
 }
 
 export function AddPlayerDialog({ gameId }: AddPlayerDialogProps) {

@@ -14,7 +14,7 @@ import { type HoleResult } from "@shared/schema";
 export default function Play() {
   const [match, params] = useRoute("/game/:id");
   const [, setLocation] = useLocation();
-  const gameId = params?.id ? parseInt(params.id) : null;
+  const gameId = params?.id ?? null;
   const { data, isLoading, error } = useGame(gameId);
   const restartGame = useRestartGame();
 

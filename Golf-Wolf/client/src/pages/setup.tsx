@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/page-header";
 export default function Setup() {
   const [match, params] = useRoute("/game/:id/setup");
   const [, setLocation] = useLocation();
-  const gameId = params?.id ? parseInt(params.id) : null;
+  const gameId = params?.id ?? null;
   const { data, isLoading, error } = useGame(gameId);
   const startGame = useStartGame();
   const deletePlayer = useDeletePlayer();
