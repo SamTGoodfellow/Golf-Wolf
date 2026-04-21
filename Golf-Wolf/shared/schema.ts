@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -28,6 +28,14 @@ export const holeResults = pgTable("hole_results", {
   isBlindWolf: boolean("is_blind_wolf").notNull().default(false), // Declared before any tee shots
   isDraw: boolean("is_draw").notNull().default(false),            // No points awarded
   winnerIds: integer("winner_ids").array(),  // Empty on draw
+});
+
+export const gameAnalytics = pgTable("game_analytics", {
+  id: serial("id").primaryKey(),
+  gameId: text("game_id").notNull().unique(),
+  playerCount: integer("player_count"),
+  startedAt: timestamp("started_at"),
+  endedAt: timestamp("ended_at"),
 });
 
 // === SCHEMAS ===

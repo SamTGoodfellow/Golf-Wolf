@@ -6,6 +6,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import type { HoleResult } from "@shared/schema";
 import { generateRoundSummary } from "./gemini";
+import { trackGameStarted, trackGameEnded } from "./analytics";
 
 // ============================================
 // RATE LIMITERS
@@ -225,6 +226,7 @@ export async function registerRoutes(
     }
 
     const updated = await storage.updateGameStatus(id, "playing");
+    trackGameStarted(id, players.length);
     res.json(updated);
   });
 
@@ -304,6 +306,7 @@ export async function registerRoutes(
       if (game) {
         if (input.holeNumber === 18) {
           await storage.updateGameStatus(gameId, "complete");
+          trackGameEnded(gameId);
         } else {
           await storage.updateGameHole(gameId, input.holeNumber + 1);
         }
