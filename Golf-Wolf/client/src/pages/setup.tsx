@@ -73,7 +73,7 @@ export default function Setup() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader />
+      <PageHeader confirmLeave />
       <div className="pb-32 px-4 pt-8 max-w-lg mx-auto space-y-8">
 
         {/* Players */}

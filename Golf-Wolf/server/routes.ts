@@ -238,6 +238,8 @@ export async function registerRoutes(
     await storage.updateGameStatus(id, "setup");
     await storage.updateGameHole(id, 1);
     await storage.updateGamePlayerOrder(id, []);
+    await storage.deleteAllHoleResults(id);
+    await storage.resetPlayerScores(id);
     res.json(await storage.getGame(id));
   });
 

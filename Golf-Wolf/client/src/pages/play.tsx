@@ -50,6 +50,7 @@ export default function Play() {
   return (
     <div className="min-h-screen bg-muted/20">
       <PageHeader
+        confirmLeave
         actions={
           <>
             <ScoringRulesSheet playerCount={players.length} />

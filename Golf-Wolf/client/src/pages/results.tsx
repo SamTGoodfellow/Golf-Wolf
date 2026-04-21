@@ -37,7 +37,7 @@ export default function Results() {
 
   return (
     <div className="min-h-screen bg-muted/20">
-      <PageHeader />
+      <PageHeader confirmLeave />
 
       <main className="max-w-lg mx-auto px-4 py-6 pb-24">
         <div className="space-y-8 text-center animate-in fade-in slide-in-from-bottom-8 duration-700">

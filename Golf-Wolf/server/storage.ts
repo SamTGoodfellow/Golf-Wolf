@@ -26,6 +26,8 @@ export interface IStorage {
   getHoleResults(gameId: string): Promise<HoleResult[]>;
   getHoleResult(gameId: string, holeNumber: number): Promise<HoleResult | undefined>;
   deleteHoleResult(gameId: string, holeNumber: number): Promise<void>;
+  deleteAllHoleResults(gameId: string): Promise<void>;
+  resetPlayerScores(gameId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -162,6 +164,20 @@ export class MemStorage implements IStorage {
   async deleteHoleResult(gameId: string, holeNumber: number): Promise<void> {
     const existing = await this.getHoleResult(gameId, holeNumber);
     if (existing) this.holeResults.delete(existing.id);
+  }
+
+  async deleteAllHoleResults(gameId: string): Promise<void> {
+    const toDelete = Array.from(this.holeResults.entries())
+      .filter(([, r]) => r.gameId === gameId)
+      .map(([id]) => id);
+    for (const id of toDelete) this.holeResults.delete(id);
+  }
+
+  async resetPlayerScores(gameId: string): Promise<void> {
+    const players = await this.getPlayers(gameId);
+    for (const player of players) {
+      this.players.set(player.id, { ...player, score: 0 });
+    }
   }
 }
 
