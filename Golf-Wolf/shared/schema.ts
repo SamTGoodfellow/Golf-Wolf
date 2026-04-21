@@ -1,10 +1,10 @@
-import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // === TABLE DEFINITIONS ===
 export const games = pgTable("games", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   status: text("status").notNull().default("setup"), // 'setup', 'playing', 'complete'
   currentHole: integer("current_hole").notNull().default(1),
   playerOrder: integer("player_order").array(), // Ordered player IDs; determines wolf rotation
@@ -12,7 +12,7 @@ export const games = pgTable("games", {
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
-  gameId: integer("game_id").notNull(),
+  gameId: text("game_id").notNull(),
   name: text("name").notNull(),
   handicap: integer("handicap").notNull().default(0),
   score: integer("score").notNull().default(0), // Cached total score
@@ -20,7 +20,7 @@ export const players = pgTable("players", {
 
 export const holeResults = pgTable("hole_results", {
   id: serial("id").primaryKey(),
-  gameId: integer("game_id").notNull(),
+  gameId: text("game_id").notNull(),
   holeNumber: integer("hole_number").notNull(),
   wolfId: integer("wolf_id").notNull(),
   partnerId: integer("partner_id"),         // NULL if lone wolf / blind wolf
@@ -28,6 +28,14 @@ export const holeResults = pgTable("hole_results", {
   isBlindWolf: boolean("is_blind_wolf").notNull().default(false), // Declared before any tee shots
   isDraw: boolean("is_draw").notNull().default(false),            // No points awarded
   winnerIds: integer("winner_ids").array(),  // Empty on draw
+});
+
+export const gameAnalytics = pgTable("game_analytics", {
+  id: serial("id").primaryKey(),
+  gameId: text("game_id").notNull().unique(),
+  playerCount: integer("player_count"),
+  startedAt: timestamp("started_at"),
+  endedAt: timestamp("ended_at"),
 });
 
 // === SCHEMAS ===

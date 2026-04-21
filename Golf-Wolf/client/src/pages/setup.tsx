@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/page-header";
 export default function Setup() {
   const [match, params] = useRoute("/game/:id/setup");
   const [, setLocation] = useLocation();
-  const gameId = params?.id ? parseInt(params.id) : null;
+  const gameId = params?.id ?? null;
   const { data, isLoading, error } = useGame(gameId);
   const startGame = useStartGame();
   const deletePlayer = useDeletePlayer();
@@ -73,7 +73,7 @@ export default function Setup() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader />
+      <PageHeader confirmLeave />
       <div className="pb-32 px-4 pt-8 max-w-lg mx-auto space-y-8">
 
         {/* Players */}

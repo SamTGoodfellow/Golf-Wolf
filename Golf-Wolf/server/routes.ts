@@ -1,10 +1,48 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import type { Server } from "http";
+import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import type { HoleResult } from "@shared/schema";
 import { generateRoundSummary } from "./gemini";
+import { trackGameStarted, trackGameEnded } from "./analytics";
+
+// ============================================
+// RATE LIMITERS
+// ============================================
+const createGameLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many games created from this IP, please try again later" },
+});
+
+const summaryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many summary requests, please try again later" },
+});
+
+// ============================================
+// ADMIN TOKEN VALIDATION
+// ============================================
+async function requireAdminToken(req: Request, res: Response, gameId: string): Promise<boolean> {
+  const token = req.headers["x-admin-token"];
+  if (!token || Array.isArray(token)) {
+    res.status(403).json({ message: "Admin token required" });
+    return false;
+  }
+  const stored = await storage.getAdminToken(gameId);
+  if (!stored || token !== stored) {
+    res.status(403).json({ message: "Invalid admin token" });
+    return false;
+  }
+  return true;
+}
 
 // ============================================
 // SCORING CONSTANTS
@@ -33,7 +71,7 @@ function getScoringConstants(playerCount: number) {
 
 // Recalculate all player scores from scratch using every hole result.
 // Called after any submit or edit to keep scores consistent.
-async function recalculateAllScores(gameId: number): Promise<void> {
+async function recalculateAllScores(gameId: string): Promise<void> {
   const results = await storage.getHoleResults(gameId);
   const players = await storage.getPlayers(gameId);
   const playerIds = players.map(p => p.id);
@@ -56,7 +94,7 @@ function applyResultToScores(
   scores: Map<number, number>,
   scoring: ReturnType<typeof getScoringConstants>
 ): void {
-  if (result.isDraw) return; // Draw: no points change
+  if (result.isDraw) return;
 
   const winnerIds = result.winnerIds ?? [];
   const isWolfWin = winnerIds.includes(result.wolfId);
@@ -121,15 +159,15 @@ export async function registerRoutes(
     );
   });
 
-  // Create Game
-  app.post(api.games.create.path, async (req, res) => {
-    const game = await storage.createGame();
-    res.status(201).json(game);
+  // Create Game — rate limited
+  app.post(api.games.create.path, createGameLimiter, async (_req, res) => {
+    const { game, adminToken } = await storage.createGame();
+    res.status(201).json({ ...game, adminToken });
   });
 
-  // Get Game State
+  // Get Game State — public (for sharing)
   app.get(api.games.get.path, async (req, res) => {
-    const id = Number(req.params.id);
+    const id = String(req.params.id);
     const game = await storage.getGame(id);
     if (!game) return res.status(404).json({ message: "Game not found" });
     const players = await storage.getPlayers(id);
@@ -137,11 +175,12 @@ export async function registerRoutes(
     res.json({ game, players, results });
   });
 
-  // Generate Round Summary
-  app.post(api.games.summary.path, async (req, res) => {
-    const id = Number(req.params.id);
+  // Generate Round Summary — rate limited, requires admin token
+  app.post(api.games.summary.path, summaryLimiter, async (req, res) => {
+    const id = String(req.params.id);
     const game = await storage.getGame(id);
     if (!game) return res.status(404).json({ message: "Game not found" });
+    if (!await requireAdminToken(req, res, id)) return;
     const players = await storage.getPlayers(id);
     const results = await storage.getHoleResults(id);
     try {
@@ -153,10 +192,11 @@ export async function registerRoutes(
     }
   });
 
-  // Set Player Order
+  // Set Player Order — requires admin token
   app.post(api.games.setOrder.path, async (req, res) => {
     try {
-      const id = Number(req.params.id);
+      const id = String(req.params.id);
+      if (!await requireAdminToken(req, res, id)) return;
       const input = api.games.setOrder.input.parse(req.body);
       const game = await storage.getGame(id);
       if (!game) return res.status(404).json({ message: "Game not found" });
@@ -170,9 +210,10 @@ export async function registerRoutes(
     }
   });
 
-  // Start Game
+  // Start Game — requires admin token
   app.post(api.games.start.path, async (req, res) => {
-    const id = Number(req.params.id);
+    const id = String(req.params.id);
+    if (!await requireAdminToken(req, res, id)) return;
     const game = await storage.getGame(id);
     if (!game) return res.status(404).json({ message: "Game not found" });
 
@@ -185,25 +226,30 @@ export async function registerRoutes(
     }
 
     const updated = await storage.updateGameStatus(id, "playing");
+    trackGameStarted(id, players.length);
     res.json(updated);
   });
 
-  // Restart Game
+  // Restart Game — requires admin token
   app.post(api.games.restart.path, async (req, res) => {
-    const id = Number(req.params.id);
+    const id = String(req.params.id);
+    if (!await requireAdminToken(req, res, id)) return;
     const game = await storage.getGame(id);
     if (!game) return res.status(404).json({ message: "Game not found" });
 
     await storage.updateGameStatus(id, "setup");
     await storage.updateGameHole(id, 1);
     await storage.updateGamePlayerOrder(id, []);
+    await storage.deleteAllHoleResults(id);
+    await storage.resetPlayerScores(id);
     res.json(await storage.getGame(id));
   });
 
-  // Add Player
+  // Add Player — requires admin token
   app.post(api.players.create.path, async (req, res) => {
     try {
-      const gameId = Number(req.params.gameId);
+      const gameId = String(req.params.gameId);
+      if (!await requireAdminToken(req, res, gameId)) return;
       const input = api.players.create.input.parse(req.body);
       const player = await storage.createPlayer({ ...input, gameId });
       res.status(201).json(player);
@@ -215,17 +261,21 @@ export async function registerRoutes(
     }
   });
 
-  // Delete Player
+  // Delete Player — requires admin token (looked up via player's gameId)
   app.delete(api.players.delete.path, async (req, res) => {
     const id = Number(req.params.id);
+    const player = await storage.getPlayer(id);
+    if (!player) return res.status(404).json({ message: "Player not found" });
+    if (!await requireAdminToken(req, res, player.gameId)) return;
     await storage.deletePlayer(id);
     res.status(204).send();
   });
 
-  // Submit Hole Result
+  // Submit Hole Result — requires admin token
   app.post(api.holes.submit.path, async (req, res) => {
     try {
-      const gameId = Number(req.params.gameId);
+      const gameId = String(req.params.gameId);
+      if (!await requireAdminToken(req, res, gameId)) return;
       const input = api.holes.submit.input.parse(req.body);
 
       if (!input.isDraw) {
@@ -235,7 +285,6 @@ export async function registerRoutes(
           : [input.wolfId];
         const hunterIds = players.map(p => p.id).filter(id => !wolfSideIds.includes(id));
 
-        // Wolf and partner must win or lose together
         if (wolfSideIds.length > 1) {
           const wolfWins = input.winnerIds.includes(input.wolfId);
           const partnerWins = input.winnerIds.includes(input.partnerId!);
@@ -244,7 +293,6 @@ export async function registerRoutes(
           }
         }
 
-        // Hunters must all win or all lose — never split
         const huntersWinning = hunterIds.filter(id => input.winnerIds.includes(id));
         if (huntersWinning.length > 0 && huntersWinning.length !== hunterIds.length) {
           return res.status(400).json({ message: "Hunters win or lose as a team" });
@@ -258,6 +306,7 @@ export async function registerRoutes(
       if (game) {
         if (input.holeNumber === 18) {
           await storage.updateGameStatus(gameId, "complete");
+          trackGameEnded(gameId);
         } else {
           await storage.updateGameHole(gameId, input.holeNumber + 1);
         }
@@ -272,10 +321,11 @@ export async function registerRoutes(
     }
   });
 
-  // Edit Hole Result
+  // Edit Hole Result — requires admin token
   app.put(api.holes.edit.path, async (req, res) => {
     try {
-      const gameId = Number(req.params.gameId);
+      const gameId = String(req.params.gameId);
+      if (!await requireAdminToken(req, res, gameId)) return;
       const holeNumber = Number(req.params.holeNumber);
       const input = api.holes.edit.input.parse(req.body);
 
