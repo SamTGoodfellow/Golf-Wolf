@@ -36,9 +36,6 @@ export default function Results() {
     }
   };
 
-  const totalPar = isScored && game.coursePar ? game.coursePar.reduce((s, p) => s + p, 0) : null;
-  const totalYards = isScored && game.courseYardage ? game.courseYardage.reduce((s, y) => s + y, 0) : null;
-
   return (
     <div className="min-h-screen bg-muted/20">
       <PageHeader confirmLeave />
@@ -79,89 +76,6 @@ export default function Results() {
               <p className="text-sm text-muted-foreground">No verdict available.</p>
             )}
           </div>
-
-          {/* Course scorecard */}
-          {isScored && game.coursePar && game.courseYardage && (
-            <div className="text-left space-y-3">
-              <h2 className="font-display font-bold text-2xl text-center">Course Scorecard</h2>
-              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-                {game.courseName && (
-                  <div className="px-4 py-3 border-b border-border bg-muted/30">
-                    <p className="font-bold text-sm text-foreground">{game.courseName}</p>
-                    <p className="text-xs text-muted-foreground">{game.selectedTee} tee</p>
-                  </div>
-                )}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground bg-muted/20 w-12">Hole</th>
-                        {game.coursePar.slice(0, 9).map((_, i) => (
-                          <th key={i} className="px-1.5 py-2 font-semibold text-muted-foreground text-center w-8 bg-muted/20">{i + 1}</th>
-                        ))}
-                        <th className="px-2 py-2 font-semibold text-muted-foreground text-center bg-muted/40">Out</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-border/50">
-                        <td className="px-3 py-2 font-semibold text-foreground bg-muted/10">Par</td>
-                        {game.coursePar.slice(0, 9).map((p, i) => (
-                          <td key={i} className="px-1.5 py-2 text-center text-foreground">{p}</td>
-                        ))}
-                        <td className="px-2 py-2 text-center font-bold text-foreground bg-muted/10">
-                          {game.coursePar.slice(0, 9).reduce((s, p) => s + p, 0)}
-                        </td>
-                      </tr>
-                      <tr className="border-b border-border">
-                        <td className="px-3 py-2 font-semibold text-foreground bg-muted/10">Yds</td>
-                        {game.courseYardage.slice(0, 9).map((y, i) => (
-                          <td key={i} className="px-1.5 py-2 text-center text-muted-foreground">{y}</td>
-                        ))}
-                        <td className="px-2 py-2 text-center font-bold text-muted-foreground bg-muted/10">
-                          {game.courseYardage.slice(0, 9).reduce((s, y) => s + y, 0).toLocaleString()}
-                        </td>
-                      </tr>
-
-                      {/* Back 9 header row */}
-                      <tr className="border-b border-border">
-                        <td className="px-3 py-2 font-semibold text-muted-foreground bg-muted/20">Hole</td>
-                        {game.coursePar.slice(9).map((_, i) => (
-                          <td key={i} className="px-1.5 py-2 font-semibold text-muted-foreground text-center bg-muted/20">{i + 10}</td>
-                        ))}
-                        <td className="px-2 py-2 font-semibold text-muted-foreground text-center bg-muted/40">In</td>
-                      </tr>
-                      <tr className="border-b border-border/50">
-                        <td className="px-3 py-2 font-semibold text-foreground bg-muted/10">Par</td>
-                        {game.coursePar.slice(9).map((p, i) => (
-                          <td key={i} className="px-1.5 py-2 text-center text-foreground">{p}</td>
-                        ))}
-                        <td className="px-2 py-2 text-center font-bold text-foreground bg-muted/10">
-                          {game.coursePar.slice(9).reduce((s, p) => s + p, 0)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-3 py-2 font-semibold text-foreground bg-muted/10">Yds</td>
-                        {game.courseYardage.slice(9).map((y, i) => (
-                          <td key={i} className="px-1.5 py-2 text-center text-muted-foreground">{y}</td>
-                        ))}
-                        <td className="px-2 py-2 text-center font-bold text-muted-foreground bg-muted/10">
-                          {game.courseYardage.slice(9).reduce((s, y) => s + y, 0).toLocaleString()}
-                        </td>
-                      </tr>
-                    </tbody>
-                    {totalPar !== null && totalYards !== null && (
-                      <tfoot>
-                        <tr className="border-t-2 border-border bg-muted/30">
-                          <td className="px-3 py-2 font-bold text-foreground" colSpan={10}>Total</td>
-                          <td className="px-2 py-2 text-center font-black text-foreground">{totalPar} / {totalYards.toLocaleString()}</td>
-                        </tr>
-                      </tfoot>
-                    )}
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="space-y-3 text-left">
             <h2 className="font-display font-bold text-2xl text-center">Hole by Hole</h2>

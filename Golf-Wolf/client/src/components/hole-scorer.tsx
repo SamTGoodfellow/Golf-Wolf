@@ -60,10 +60,10 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
   const [winnerIds, setWinnerIds] = useState<number[]>(initial.winnerIds);
   const [isDraw, setIsDraw] = useState(initial.isDraw);
   const holePar = isScored && game.coursePar ? game.coursePar[holeNumber - 1] : null;
-  const defaultNetScores: Record<number, string> = isScored && holePar !== null && Object.keys(initial.netScores).length === 0
+  const parDefaults = isScored && holePar !== null && Object.keys(initial.netScores).length === 0
     ? Object.fromEntries(players.map(p => [p.id, String(holePar)]))
     : initial.netScores;
-  const [netScores, setNetScores] = useState<Record<number, string>>(defaultNetScores);
+  const [netScores, setNetScores] = useState<Record<number, string>>(parDefaults);
 
   const submitHole = useSubmitHole();
   const editHole = useEditHole();
@@ -87,7 +87,11 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
     setPartnerId(null);
     setWinnerIds([]);
     setIsDraw(false);
-    setNetScores({});
+    if (holePar !== null) {
+      setNetScores(Object.fromEntries(players.map(p => [p.id, String(holePar)])));
+    } else {
+      setNetScores({});
+    }
   };
 
   const handleDraw = () => { setIsDraw(true); setWinnerIds([]); };
@@ -138,7 +142,7 @@ export function HoleScorer({ game, players, editingResult, onCancelEdit }: HoleS
             setPartnerId(null);
             setWinnerIds([]);
             setIsDraw(false);
-            setNetScores({});
+            setNetScores(holePar !== null ? Object.fromEntries(players.map(p => [p.id, String(holePar)])) : {});
           }
         }
       );
